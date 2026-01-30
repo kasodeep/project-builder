@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="UserResultMap">
+
+    <resultMap id="userMap" type="fury.deep.project_builder.entity.user.User">
+
+        <!-- User fields -->
+        <id property="id" column="user_id"/>
+        <result property="username" column="username"/>
+        <result property="email" column="email"/>
+        <result property="password" column="password"/>
+        <result property="role" column="role"/>
+
+        <!-- Team association -->
+        <association property="team" javaType="fury.deep.project_builder.entity.team.Team">
+            <id property="id" column="team_id"/>
+            <result property="name" column="team_name"/>
+        </association>
+    </resultMap>
+</mapper>
