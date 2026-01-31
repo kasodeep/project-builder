@@ -30,4 +30,18 @@
         WHERE u.username = #{username}
     </select>
 
+    <select id="countUsersInTeam" resultType="int">
+        SELECT COUNT(*)
+        FROM "user" u
+        WHERE u.team_id = #{teamId}
+        AND u.username IN
+        <foreach collection="usernames"
+                 item="username"
+                 open="("
+                 separator=","
+                 close=")">
+            #{username}
+        </foreach>
+    </select>
+
 </mapper>

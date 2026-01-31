@@ -41,6 +41,8 @@ CREATE TABLE project
     updated_by VARCHAR(255),
     updated_at TIMESTAMPTZ  NOT NULL    DEFAULT now(),
 
+    -- OWNER could have been a fk.
+
     CONSTRAINT fk_project_team
         FOREIGN KEY (team_id) REFERENCES team (id)
             ON DELETE RESTRICT, -- VERY IMPORTANT

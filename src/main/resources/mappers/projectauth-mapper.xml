@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="fury.deep.project_builder.repository.ProjectAuthMapper">
+    <delete id="deleteManagersByProjectId">
+        DELETE
+        FROM project_manager
+        WHERE project_id = #{projectId}
+    </delete>
+
+    <insert id="insertManagers">
+        INSERT INTO project_manager (project_id, user_id)
+        SELECT
+        #{projectId},
+        u.id
+        FROM "user" u
+        WHERE u.team_id = #{teamId}
+        AND u.username IN
+        <foreach collection="usernames"
+                 item="username"
+                 open="("
+                 separator=","
+                 close=")">
+            #{username}
+        </foreach>
+    </insert>
+
+</mapper>

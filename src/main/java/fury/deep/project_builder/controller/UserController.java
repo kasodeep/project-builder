@@ -1,7 +1,5 @@
 package fury.deep.project_builder.controller;
 
-import fury.deep.project_builder.dto.user.UserLoginRequest;
-import fury.deep.project_builder.dto.user.UserLoginResponse;
 import fury.deep.project_builder.dto.user.UserRegisterRequest;
 import fury.deep.project_builder.service.UserService;
 import org.springframework.http.HttpStatus;

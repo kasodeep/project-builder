@@ -40,3 +40,6 @@ Event timestamp → Instant
    "error": "Unauthorized",
    "path": "/api/v1/team/all"
    }
+4. Logs related to db
+5. all project related.
+6. Mapper related (when 2 or more params we need . else directly)

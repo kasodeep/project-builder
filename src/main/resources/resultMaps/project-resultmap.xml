@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ProjectResultMap">
+
+    <resultMap id="projectMap" type="fury.deep.project_builder.entity.project.Project">
+
+        <id property="id" column="project_id"/>
+        <result property="name" column="project_name"/>
+        <result property="owner" column="owner"/>
+        <result property="progress" column="progress"/>
+        <result property="start" column="start_date"/>
+        <result property="end" column="end_date"/>
+        <result property="updatedBy" column="updated_by"/>
+        <result property="updatedAt" column="updated_at"/>
+
+        <!-- managers via separate query or JSON array -->
+        <result property="managers"
+                column="managers"
+                typeHandler="fury.deep.project_builder.mybatis.StringListTypeHandler"/>
+
+        <association property="team"
+                     javaType="fury.deep.project_builder.entity.team.Team">
+            <id property="id" column="team_id"/>
+            <result property="name" column="team_name"/>
+        </association>
+    </resultMap>
+</mapper>
+
+        <!-- Collection MUST come last (before optional discriminator) -->
+        <!--<collection property="managers"-->
+        <!--            ofType="string"-->
+        <!--            column="id"-->
+        <!--            select="fury.deep.project_builder.repositories.ProjectMapper.findManagers"/>-->

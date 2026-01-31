@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="fury.deep.project_builder.repository.ProjectMapper">
+
+    <insert id="insertProject" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO project
+            (name, team_id, owner, progress, start_date, end_date, updated_by)
+        VALUES (#{name},
+                #{team.id},
+                #{owner},
+                #{progress},
+                #{start},
+                #{end},
+                #{updatedBy})
+    </insert>
+
+    <select id="findById" parameterType="string" resultMap="ProjectResultMap.projectMap">
+        SELECT p.id   AS project_id,
+               p.name AS project_name,
+               p.owner,
+               p.progress,
+               p.start_date,
+               p.end_date,
+               p.updated_by,
+               p.updated_at,
+
+               t.id   AS team_id,
+               t.name AS team_name,
+
+               COALESCE(
+                       array_agg(u.username) FILTER(WHERE u.username IS NOT NULL),
+                       '{}'
+               )      AS managers
+
+        FROM project p
+                 JOIN team t ON t.id = p.team_id
+                 LEFT JOIN project_manager pm ON pm.project_id = p.id
+                 LEFT JOIN "user" u ON u.id = pm.user_id
+
+        WHERE p.id = #{id}
+
+        GROUP BY p.id,
+                 t.id
+    </select>
+
+    <select id="findAll"
+            parameterType="string"
+            resultMap="ProjectResultMap.projectMap">
+
+        SELECT p.id   AS project_id,
+               p.name AS project_name,
+               p.owner,
+               p.progress,
+               p.start_date,
+               p.end_date,
+               p.updated_by,
+               p.updated_at,
+
+               t.id   AS team_id,
+               t.name AS team_name,
+
+               COALESCE(
+                       array_agg(u.username) FILTER(WHERE u.username IS NOT NULL),
+                       '{}'
+               )      AS managers
+
+        FROM project p
+                 JOIN team t ON t.id = p.team_id
+                 LEFT JOIN project_manager pm ON pm.project_id = p.id
+                 LEFT JOIN "user" u ON u.id = pm.user_id
+
+        WHERE p.team_id = #{teamId}
+
+        GROUP BY p.id,
+                 t.id
+
+        ORDER BY p.updated_at DESC
+
+    </select>
+
+
+    <update id="updateProjectMetadata">
+        UPDATE project
+        <set>
+            <if test="request.name != null">
+                name = #{request.name},
+            </if>
+            <if test="request.start != null">
+                start_date = #{request.start},
+            </if>
+            <if test="request.end != null">
+                end_date = #{request.end},
+            </if>
+            updated_by = #{updatedBy},
+            updated_at = now()
+        </set>
+        WHERE id = #{request.projectId}
+    </update>
+</mapper>
