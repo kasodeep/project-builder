@@ -1,45 +1,44 @@
 ## Learnings
 
-### JPA vs Mapper
+### Exception Handling
 
-1. When we have relations such as many users belong to one team, we can use old jpa to map them.
-2. But it can cause unexpected joins and N+1 query problem.
-3. Mapper provides full control over the query and hence we can operate using default association within a result, or select within a result (Avoid).
+- Using a standard error response to what the framework provides for consistency.
+- Errors have priority and a general @ExceptionHandler with avoid leaking sensitive data.
+- We have error messaged where each message contains parameters for better details.
+- How can we manage db based errors ??
+
+### Mapper
+
+1. We create mappers whose namespace maps our repository interface containing method signatures.
+2. Then the method name must map to the id of the query, and resultMap denoting the type returned.
+3. When we have 2 params, the dot `.` operator must be used. Else direct names are fine #{name}.
+4. Batis maps the ResultRow to a List<T>, but can't map GROUP BY to a list, custom type handler.
 
 ### Models
 
 - Domain Model
-User
-├── id
-├── username
-├── email
-├── role
-└── team (object)
+  User
+  ├── id
+  ├── username
+  ├── email
+  ├── role
+  └── team (object)
 
 - Persistence Model
-user
-├── id
-├── username
-├── email
-├── role
-└── team_id (FK)
+  user
+  ├── id
+  ├── username
+  ├── email
+  ├── role
+  └── team_id (FK)
+
+### DB Config
+
+1. We remove jpa as it causes spring to behave weird with hikari-cp.
+2. When providing a config it provides a connection pool.
+3. The session remains for transactional methods. More on isolation levels.
 
 ### Date
 
 Date only → LocalDate
 Event timestamp → Instant
-
-### Problems
-
-1. DB Max Pool config
-2. Whitelist URL Issue
-3. Sending error like:
-   {
-   "timestamp": "2026-01-30T08:51:19.568Z",
-   "status": 401,
-   "error": "Unauthorized",
-   "path": "/api/v1/team/all"
-   }
-4. Logs related to db
-5. all project related.
-6. Mapper related (when 2 or more params we need . else directly)

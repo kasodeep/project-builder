@@ -15,8 +15,19 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
+/**
+ * A filter acting as a security guard for NON_WHITELIST_URLS.
+ * It checks for basic authentication and updated the context with the authenticated user.
+ *
+ * @author night_fury_44
+ */
 @Component
 public class AuthenticationFilter extends OncePerRequestFilter {
+
+    private final String[] WHITELIST_URLS = {
+            "/api/v1/auth",
+            "/api/v1/team"
+    };
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
@@ -26,6 +37,10 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * The method filters the WHITELIST_URLS and authenticate the secured ones.
+     *
+     */
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain
     ) throws IOException, ServletException {
@@ -53,6 +68,11 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         }
     }
 
+    /**
+     * It decodes the header containing credentials, matches the password for the user, and sets the context.
+     *
+     * @return - true when the auth is a success.
+     */
     private boolean authenticate(String authHeader) {
         String base64Credentials = authHeader.substring(6);
 
@@ -83,7 +103,10 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/api/v1/auth") || path.startsWith("/health") || path.startsWith("/api/v1/team");
+        for (String check : WHITELIST_URLS) {
+            if (path.startsWith(check)) return true;
+        }
+        return false;
     }
 }
 

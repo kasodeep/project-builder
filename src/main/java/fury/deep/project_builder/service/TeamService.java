@@ -21,12 +21,11 @@ public class TeamService {
         return teamMapper.findAll();
     }
 
-    public boolean existsById(String id) {
+    public void existsById(String id) {
         if (!teamMapper.existsById(id)) {
             throw new ResourceNotFoundException(ErrorMessages
                     .TEAM_NOT_FOUND
                     .formatted(id));
         }
-        return true;
     }
 }

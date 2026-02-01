@@ -6,13 +6,18 @@ import fury.deep.project_builder.dto.project.ProjectUpdateRequest;
 import fury.deep.project_builder.entity.project.Project;
 import fury.deep.project_builder.entity.user.Role;
 import fury.deep.project_builder.entity.user.User;
-import fury.deep.project_builder.exception.ResourceNotFoundException;
 import fury.deep.project_builder.exception.UnAuthorizedException;
 import fury.deep.project_builder.repository.ProjectMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * Provides methods related to managing the project entity from creating, to update, to findAll.
+ *
+ * @author night_fury_44
+ *
+ */
 @Service
 public class ProjectService {
 
@@ -24,11 +29,10 @@ public class ProjectService {
         this.projectMapper = projectMapper;
     }
 
-    /*
-     * 1. The principal should be a manager. We allow project with same names.
-     * 2. We create the project, and perform the validation.
-     * 3. Managers can be added separately for authorization. The list will be fetched during data.
-     * */
+    /**
+     * The project can be created by MANAGER, and the team will be the one the user belongs to.
+     *
+     */
     public void createProject(ProjectCreateRequest projectCreateRequest, User user) {
         if (user.getRole() != Role.MANAGER) {
             throw new UnAuthorizedException(ErrorMessages.UNAUTHORIZED_ACTION);
@@ -38,32 +42,30 @@ public class ProjectService {
         projectMapper.insertProject(project);
     }
 
-    /*
-     * 1. the updater should be the owner or the manager of the project.
-     * */
-    public void updateProject(ProjectUpdateRequest projectUpdateRequest, User user) {
-        Project project = findById(projectUpdateRequest.projectId());
-        UserValidation(project, user);
-
-        projectMapper.updateProjectMetadata(projectUpdateRequest, user.getUsername());
+    /**
+     * Method validates the access to the project and update the details accordingly.
+     *
+     */
+    public void updateProject(ProjectUpdateRequest request, User user) {
+        ValidateAccess(request.projectId(), user);
+        projectMapper.updateProjectMetadata(request, user.getUsername());
     }
 
+    /**
+     * The method finds all the projects, queried by the team of the user.
+     */
     public List<Project> getAllProjects(User user) {
         return projectMapper.findAll(user.getTeam().getId());
     }
 
-    public Project findById(String projectId) {
-        Project project = projectMapper.findById(projectId);
+    /**
+     * Checks the access by checking if the user is owner or manager.
+     *
+     */
+    public void ValidateAccess(String projectId, User user) {
+        boolean allowed = projectMapper.isOwnerOrManager(projectId, user.getUsername());
 
-        if (project == null) {
-            throw new ResourceNotFoundException(ErrorMessages.PROJECT_NOT_FOUND.formatted(projectId));
-        }
-        return project;
-    }
-
-    public void UserValidation(Project project, User user) {
-        if (!project.getOwner().equals(user.getUsername())
-                && !project.getManagers().contains(user.getUsername())) {
+        if (!allowed) {
             throw new UnAuthorizedException(ErrorMessages.UNAUTHORIZED_ACTION);
         }
     }

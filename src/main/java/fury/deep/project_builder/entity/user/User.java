@@ -6,6 +6,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * User is the basic client who access the services, after being authenticated and authorized.
+ *
+ * @author night_fury_44
+ */
 @Data
 @Builder
 @NoArgsConstructor // We need both for builder to work and mybatis to map.

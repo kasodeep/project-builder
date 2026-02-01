@@ -41,9 +41,6 @@
                  LEFT JOIN "user" u ON u.id = pm.user_id
 
         WHERE p.id = #{id}
-
-        GROUP BY p.id,
-                 t.id
     </select>
 
     <select id="findAll"
@@ -78,9 +75,7 @@
                  t.id
 
         ORDER BY p.updated_at DESC
-
     </select>
-
 
     <update id="updateProjectMetadata">
         UPDATE project
@@ -99,4 +94,16 @@
         </set>
         WHERE id = #{request.projectId}
     </update>
+
+    <select id="isOwnerOrManager" resultType="boolean">
+        SELECT EXISTS (SELECT 1
+                       FROM project p
+                                LEFT JOIN project_manager pm ON pm.project_id = p.id
+                                LEFT JOIN "user" u ON u.id = pm.user_id
+                       WHERE p.id = #{projectId}
+                         AND (
+                           p.owner = #{username}
+                               OR u.username = #{username}
+                           ))
+    </select>
 </mapper>

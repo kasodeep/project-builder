@@ -2,13 +2,18 @@ package fury.deep.project_builder.dto.user;
 
 import fury.deep.project_builder.entity.user.Role;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 
+/**
+ * Request to register a user to the service, with a unique username and to an existing team.
+ *
+ * @author night_fury_44
+ */
 public record UserRegisterRequest(
-        @NotNull String username,
+        @NotBlank String username,
         @Email String email,
-        @NotNull String password,
-        @NotNull Role role,
-        @NotNull String teamId
+        @NotBlank String password,
+        @NotBlank Role role,
+        @NotBlank String teamId
 ) {
 }

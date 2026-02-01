@@ -5,9 +5,9 @@ import fury.deep.project_builder.dto.project.ProjectUpdateRequest;
 import fury.deep.project_builder.entity.project.Project;
 import fury.deep.project_builder.security.AuthContextHolder;
 import fury.deep.project_builder.service.ProjectService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,13 +28,13 @@ public class ProjectController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<Void> createProject(@Validated @RequestBody ProjectCreateRequest projectCreateRequest) {
+    public ResponseEntity<Void> createProject(@Valid @RequestBody ProjectCreateRequest projectCreateRequest) {
         projectService.createProject(projectCreateRequest, AuthContextHolder.getUser());
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PatchMapping("/update")
-    public ResponseEntity<Project> updateProject(@Validated @RequestBody ProjectUpdateRequest projectUpdateRequest) {
+    public ResponseEntity<Project> updateProject(@Valid @RequestBody ProjectUpdateRequest projectUpdateRequest) {
         projectService.updateProject(projectUpdateRequest, AuthContextHolder.getUser());
         return ResponseEntity.ok().build();
     }

@@ -10,11 +10,7 @@ import java.util.List;
 public class StringListTypeHandler extends BaseTypeHandler<List<String>> {
 
     @Override
-    public void setNonNullParameter(
-            PreparedStatement ps,
-            int i,
-            List<String> parameter,
-            JdbcType jdbcType
+    public void setNonNullParameter(PreparedStatement ps, int i, List<String> parameter, JdbcType jdbcType
     ) throws SQLException {
         Array array = ps.getConnection()
                 .createArrayOf("varchar", parameter.toArray());

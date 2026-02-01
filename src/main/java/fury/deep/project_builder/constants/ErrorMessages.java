@@ -1,8 +1,16 @@
 package fury.deep.project_builder.constants;
 
+/**
+ * A common class for all the error messages.
+ * The parameter messages must be used with formatted() method call.
+ *
+ * @author night_fury_44
+ *
+ */
 public final class ErrorMessages {
 
-    private ErrorMessages() {}
+    private ErrorMessages() {
+    }
 
     public static final String TEAM_NOT_FOUND =
             "Team not found with id: %s";

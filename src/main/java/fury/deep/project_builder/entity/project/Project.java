@@ -10,6 +10,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Project is a temporary endeavor with a beginning and an end and must be used to create a unique product, service.
+ *
+ * @author night_fury_44
+ */
 @Data
 @Builder
 @NoArgsConstructor

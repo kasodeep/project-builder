@@ -21,8 +21,7 @@
                 column="managers"
                 typeHandler="fury.deep.project_builder.mybatis.StringListTypeHandler"/>
 
-        <association property="team"
-                     javaType="fury.deep.project_builder.entity.team.Team">
+        <association property="team" javaType="fury.deep.project_builder.entity.team.Team">
             <id property="id" column="team_id"/>
             <result property="name" column="team_name"/>
         </association>
