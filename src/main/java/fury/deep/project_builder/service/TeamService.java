@@ -21,6 +21,13 @@ public class TeamService {
         return teamMapper.findAll();
     }
 
+    public Team findById(String id) {
+        Team team = teamMapper.findById(id);
+
+        if (team == null) throw new ResourceNotFoundException(ErrorMessages.TEAM_NOT_FOUND.formatted(id));
+        return team;
+    }
+
     public void existsById(String id) {
         if (!teamMapper.existsById(id)) {
             throw new ResourceNotFoundException(ErrorMessages

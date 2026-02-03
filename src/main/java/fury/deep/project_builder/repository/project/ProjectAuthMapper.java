@@ -1,4 +1,4 @@
-package fury.deep.project_builder.repository;
+package fury.deep.project_builder.repository.project;
 
 import org.apache.ibatis.annotations.Mapper;
 

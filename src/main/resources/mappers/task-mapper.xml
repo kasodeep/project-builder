@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="fury.deep.project_builder.repository.task.TaskMapper">
+
+    <insert id="insertTask" useGeneratedKeys="true" keyProperty="task.id">
+        INSERT INTO task
+        (name, project_id, feature_id, priority, status, start_date, end_date, updated_by, updated_at)
+        VALUES (#{task.name},
+                #{task.projectId},
+                #{task.feature.id},
+                #{task.priority},
+                #{task.status},
+                #{task.start},
+                #{task.end},
+                #{task.updatedBy},
+                #{task.updatedAt})
+    </insert>
+
+    <select id="findTasksByUserId"
+            resultMap="TaskResultMap.taskWithAssigneesMap">
+
+        SELECT t.id   AS task_id,
+               t.project_id,
+               t.name AS task_name,
+               t.priority,
+               t.status,
+               t.start_date,
+               t.end_date,
+               t.updated_by,
+               t.updated_at,
+
+               f.id   AS feature_id,
+               f.name AS feature_name,
+
+               ta.user_id
+        FROM task t
+                 JOIN task_assignee ta ON ta.task_id = t.id
+                 LEFT JOIN feature f ON f.id = t.feature_id
+        WHERE ta.user_id = #{userId}
+    </select>
+
+    <select id="findTaskById"
+            resultMap="TaskResultMap.taskFullMap">
+
+        SELECT t.id       AS task_id,
+               t.project_id,
+               t.name     AS task_name,
+               t.priority,
+               t.status,
+               t.start_date,
+               t.end_date,
+               t.updated_by,
+               t.updated_at,
+
+               f.id       AS feature_id,
+               f.name     AS feature_name,
+
+               ta.user_id AS assignee_id,
+               td.depends_on_task_id
+        FROM task t
+                 LEFT JOIN feature f ON f.id = t.feature_id
+                 LEFT JOIN task_assignee ta ON ta.task_id = t.id
+                 LEFT JOIN task_dependency td ON td.task_id = t.id
+        WHERE t.id = #{taskId}
+    </select>
+
+    <select id="findTasksByProjectId"
+            resultMap="TaskResultMap.taskProjectViewMap">
+
+        SELECT t.id   AS task_id,
+               t.name AS task_name,
+
+               f.id   AS feature_id,
+               f.name AS feature_name,
+
+               td.depends_on_task_id
+        FROM task t
+                 LEFT JOIN feature f ON f.id = t.feature_id
+                 LEFT JOIN task_dependency td ON td.task_id = t.id
+        WHERE t.project_id = #{projectId}
+    </select>
+</mapper>

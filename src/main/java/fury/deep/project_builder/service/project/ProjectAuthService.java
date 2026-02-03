@@ -1,9 +1,10 @@
-package fury.deep.project_builder.service;
+package fury.deep.project_builder.service.project;
 
 import fury.deep.project_builder.dto.project.auth.AddProjectManagerResponse;
 import fury.deep.project_builder.dto.project.auth.AddProjectManagersRequest;
 import fury.deep.project_builder.entity.user.User;
-import fury.deep.project_builder.repository.ProjectAuthMapper;
+import fury.deep.project_builder.repository.UserMapper;
+import fury.deep.project_builder.repository.project.ProjectAuthMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,10 +18,14 @@ public class ProjectAuthService {
 
     private final ProjectService projectService;
     private final ProjectAuthMapper projectAuthMapper;
+    private final UserMapper userMapper;
 
-    public ProjectAuthService(ProjectService projectService, ProjectAuthMapper projectAuthMapper) {
+    public ProjectAuthService(ProjectService projectService,
+                              ProjectAuthMapper projectAuthMapper,
+                              UserMapper userMapper) {
         this.projectService = projectService;
         this.projectAuthMapper = projectAuthMapper;
+        this.userMapper = userMapper;
     }
 
     /**
@@ -31,14 +36,23 @@ public class ProjectAuthService {
      */
     @Transactional
     public AddProjectManagerResponse addManagers(AddProjectManagersRequest request, User user) {
-        projectService.ValidateAccess(request.projectId(), user);
+        projectService.validateAccess(request.projectId(), user);
 
+        // Owner cannot add himself
         if (request.managers().contains(user.getUsername())) {
             throw new IllegalArgumentException("Owner cannot be added as manager");
+        }
+
+        // Validate all users belong to same team
+        int validCount = userMapper.countUsersInTeam(request.managers(), user.getTeam().getId());
+        if (validCount != request.managers().size()) {
+            throw new IllegalArgumentException(
+                    "All managers must belong to the same team as the project"
+            );
         }
 
         projectAuthMapper.replaceManagers(request.projectId(), request.managers(), user.getTeam().getId());
         return new AddProjectManagerResponse(request.projectId(), request.managers());
     }
-
 }
+

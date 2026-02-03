@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="fury.deep.project_builder.repository.task.TaskUtilMapper">
+
+    <!-- ========================= -->
+    <!-- Assignees                 -->
+    <!-- ========================= -->
+
+    <delete id="deleteAssigneesByTaskId">
+        DELETE
+        FROM task_assignee
+        WHERE task_id = #{taskId}
+    </delete>
+
+    <insert id="insertAssignees">
+        INSERT INTO task_assignee (task_id, user_id)
+        SELECT
+        #{taskId},
+        u.id
+        FROM "user" u
+        WHERE u.team_id = #{teamId}
+        AND u.username IN
+        <foreach collection="assignees"
+                 item="username"
+                 open="("
+                 separator=","
+                 close=")">
+            #{username}
+        </foreach>
+    </insert>
+
+    <!-- ========================= -->
+    <!-- Dependencies              -->
+    <!-- ========================= -->
+
+    <delete id="deleteDependenciesByTaskId">
+        DELETE
+        FROM task_dependency
+        WHERE task_id = #{taskId}
+    </delete>
+
+    <insert id="insertDependencies">
+        INSERT INTO task_dependency (task_id, depends_on_task_id)
+        SELECT
+        #{taskId},
+        t.id
+        FROM task t
+        WHERE t.project_id = #{projectId}
+        AND t.id IN
+        <foreach collection="dependencies"
+                 item="dependencyId"
+                 open="("
+                 separator=","
+                 close=")">
+            #{dependencyId}
+        </foreach>
+    </insert>
+
+</mapper>

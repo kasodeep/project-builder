@@ -65,6 +65,11 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    /**
+     * Some other exceptions such as method not supported, spring related are handled by this.
+     * Application related errors must be explicitly defined and send to the user. [Double Validation]
+     *
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex, HttpServletRequest request) {
         log.error("Unhandled exception for path {}", request.getRequestURI(), ex);

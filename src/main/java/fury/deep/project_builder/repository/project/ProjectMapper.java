@@ -1,4 +1,4 @@
-package fury.deep.project_builder.repository;
+package fury.deep.project_builder.repository.project;
 
 import fury.deep.project_builder.dto.project.ProjectUpdateRequest;
 import fury.deep.project_builder.entity.project.Project;

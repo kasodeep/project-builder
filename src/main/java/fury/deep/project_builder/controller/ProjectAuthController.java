@@ -3,7 +3,7 @@ package fury.deep.project_builder.controller;
 import fury.deep.project_builder.dto.project.auth.AddProjectManagerResponse;
 import fury.deep.project_builder.dto.project.auth.AddProjectManagersRequest;
 import fury.deep.project_builder.security.AuthContextHolder;
-import fury.deep.project_builder.service.ProjectAuthService;
+import fury.deep.project_builder.service.project.ProjectAuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;

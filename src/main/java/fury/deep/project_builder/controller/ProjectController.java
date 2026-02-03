@@ -4,7 +4,7 @@ import fury.deep.project_builder.dto.project.ProjectCreateRequest;
 import fury.deep.project_builder.dto.project.ProjectUpdateRequest;
 import fury.deep.project_builder.entity.project.Project;
 import fury.deep.project_builder.security.AuthContextHolder;
-import fury.deep.project_builder.service.ProjectService;
+import fury.deep.project_builder.service.project.ProjectService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

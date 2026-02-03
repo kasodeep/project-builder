@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="TaskResultMap">
+    <resultMap id="taskBaseMap" type="fury.deep.project_builder.entity.task.Task">
+        <id property="id" column="task_id"/>
+        <result property="projectId" column="project_id"/>
+        <result property="name" column="task_name"/>
+        <result property="priority" column="priority"/>
+        <result property="status" column="status"/>
+        <result property="start" column="start_date"/>
+        <result property="end" column="end_date"/>
+        <result property="updatedBy" column="updated_by"/>
+        <result property="updatedAt" column="updated_at"/>
+
+        <association property="feature" resultMap="FeatureResultMap.featureMapAssociation"/>
+    </resultMap>
+
+    <resultMap id="taskWithAssigneesMap"
+               type="fury.deep.project_builder.entity.task.Task"
+               extends="taskBaseMap">
+
+        <collection property="assignees"
+                    ofType="java.lang.String"
+                    column="user_id"/>
+    </resultMap>
+
+    <resultMap id="taskFullMap"
+               type="fury.deep.project_builder.entity.task.Task"
+               extends="taskBaseMap">
+
+        <collection property="assignees"
+                    ofType="java.lang.String"
+                    column="assignee_id"
+                    notNullColumn="assignee_id"/>
+
+        <collection property="dependencies"
+                    ofType="java.lang.String"
+                    column="depends_on_task_id"
+                    notNullColumn="depends_on_task_id"/>
+    </resultMap>
+
+    <resultMap id="taskProjectViewMap"
+               type="fury.deep.project_builder.entity.task.Task">
+
+        <id property="id" column="task_id"/>
+        <result property="name" column="task_name"/>
+
+        <association property="feature"
+                     resultMap="FeatureResultMap.featureMapAssociation"/>
+
+        <collection property="dependencies"
+                    ofType="java.lang.String"
+                    column="depends_on_task_id"
+                    notNullColumn="depends_on_task_id"/>
+    </resultMap>
+</mapper>

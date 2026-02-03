@@ -13,7 +13,7 @@ public record UserRegisterRequest(
         @NotBlank String username,
         @Email String email,
         @NotBlank String password,
-        @NotBlank Role role,
+        Role role,
         @NotBlank String teamId
 ) {
 }

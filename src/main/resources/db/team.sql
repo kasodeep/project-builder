@@ -3,6 +3,11 @@ VALUES ('finoptech'),
        ('hcdev'),
        ('compliance');
 
+INSERT INTO feature (name)
+VALUES ('design'),
+       ('code'),
+       ('test');
+
 CREATE INDEX idx_project_team_id
     ON project(team_id);
 

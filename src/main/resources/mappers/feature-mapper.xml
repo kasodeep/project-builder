@@ -3,22 +3,22 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="fury.deep.project_builder.repository.TeamMapper">
+<mapper namespace="fury.deep.project_builder.repository.FeatureMapper">
 
-    <select id="findAll" resultMap="TeamResultMap.teamMap">
+    <select id="findAll" resultMap="FeatureResultMap.featureMap">
         SELECT *
-        FROM team
+        FROM feature
     </select>
 
-    <select id="findById" resultMap="TeamResultMap.teamMap">
+    <select id="findById" resultMap="FeatureResultMap.featureMap">
         SELECT *
-        FROM team
+        FROM feature
         WHERE id = #{id}
     </select>
 
     <select id="existsById" resultType="boolean">
         SELECT CASE WHEN COUNT(*) > 0 THEN TRUE ELSE FALSE END
-        FROM team
+        FROM feature
         WHERE id = #{id}
     </select>
 </mapper>

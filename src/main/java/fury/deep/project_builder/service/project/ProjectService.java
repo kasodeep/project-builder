@@ -1,4 +1,4 @@
-package fury.deep.project_builder.service;
+package fury.deep.project_builder.service.project;
 
 import fury.deep.project_builder.constants.ErrorMessages;
 import fury.deep.project_builder.dto.project.ProjectCreateRequest;
@@ -7,7 +7,7 @@ import fury.deep.project_builder.entity.project.Project;
 import fury.deep.project_builder.entity.user.Role;
 import fury.deep.project_builder.entity.user.User;
 import fury.deep.project_builder.exception.UnAuthorizedException;
-import fury.deep.project_builder.repository.ProjectMapper;
+import fury.deep.project_builder.repository.project.ProjectMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -47,7 +47,7 @@ public class ProjectService {
      *
      */
     public void updateProject(ProjectUpdateRequest request, User user) {
-        ValidateAccess(request.projectId(), user);
+        validateAccess(request.projectId(), user);
         projectMapper.updateProjectMetadata(request, user.getUsername());
     }
 
@@ -62,7 +62,7 @@ public class ProjectService {
      * Checks the access by checking if the user is owner or manager.
      *
      */
-    public void ValidateAccess(String projectId, User user) {
+    public void validateAccess(String projectId, User user) {
         boolean allowed = projectMapper.isOwnerOrManager(projectId, user.getUsername());
 
         if (!allowed) {

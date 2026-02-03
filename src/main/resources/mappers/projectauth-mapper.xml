@@ -3,7 +3,7 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="fury.deep.project_builder.repository.ProjectAuthMapper">
+<mapper namespace="fury.deep.project_builder.repository.project.ProjectAuthMapper">
     <delete id="deleteManagersByProjectId">
         DELETE
         FROM project_manager
