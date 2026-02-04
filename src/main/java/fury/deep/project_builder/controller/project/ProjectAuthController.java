@@ -1,4 +1,4 @@
-package fury.deep.project_builder.controller;
+package fury.deep.project_builder.controller.project;
 
 import fury.deep.project_builder.dto.project.auth.AddProjectManagerResponse;
 import fury.deep.project_builder.dto.project.auth.AddProjectManagersRequest;

@@ -65,6 +65,16 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ErrorResponse.of(
+                        401,
+                        ex.getMessage(),
+                        request.getRequestURI()
+                ));
+    }
+
     /**
      * Some other exceptions such as method not supported, spring related are handled by this.
      * Application related errors must be explicitly defined and send to the user. [Double Validation]

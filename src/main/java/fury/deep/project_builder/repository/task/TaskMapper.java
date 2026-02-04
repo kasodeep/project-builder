@@ -11,6 +11,8 @@ public interface TaskMapper {
 
     void insertTask(@Param("task") Task task);
 
+    int countTasksInProject(List<String> tasks, String projectId);
+
     /**
      * Fetch all tasks assigned to a user.
      * Includes:

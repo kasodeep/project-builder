@@ -1,5 +1,10 @@
 ## Learnings
 
+###
+
+- Dashboard + Analytics.
+- Task status updates.
+
 ### Exception Handling
 
 - Using a standard error response to what the framework provides for consistency.

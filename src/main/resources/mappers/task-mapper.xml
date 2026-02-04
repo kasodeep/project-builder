@@ -19,6 +19,20 @@
                 #{task.updatedAt})
     </insert>
 
+    <select id="countTasksInProject" resultType="int">
+        SELECT COUNT(*)
+        FROM "task" t
+        WHERE t.project_id = #{projectId}
+        AND t.id IN
+        <foreach collection="tasks"
+                 item="task"
+                 open="("
+                 separator=","
+                 close=")">
+            #{task}
+        </foreach>
+    </select>
+
     <select id="findTasksByUserId"
             resultMap="TaskResultMap.taskWithAssigneesMap">
 

@@ -63,6 +63,10 @@ public class TaskService {
         return taskMapper.findTasksByProjectId(projectId);
     }
 
+    public int countTasksInProject(List<String> tasks, String projectId) {
+        return taskMapper.countTasksInProject(tasks, projectId);
+    }
+
     private Task fromCreateTaskRequest(CreateTaskRequest createTaskRequest, User user, Feature feature) {
         return Task.builder()
                 .name(createTaskRequest.name())
