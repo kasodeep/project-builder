@@ -4,8 +4,11 @@ import fury.deep.project_builder.dto.task.util.AddAssigneeRequest;
 import fury.deep.project_builder.dto.task.util.AddDependenciesRequest;
 import fury.deep.project_builder.entity.task.Task;
 import fury.deep.project_builder.entity.user.User;
+import fury.deep.project_builder.events.TaskAssigneesReplacedEvent;
+import fury.deep.project_builder.events.TaskDependenciesReplacedEvent;
 import fury.deep.project_builder.repository.UserMapper;
 import fury.deep.project_builder.repository.task.TaskUtilMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,11 +18,13 @@ public class TaskUtilService {
     private final TaskUtilMapper taskUtilMapper;
     private final TaskService taskService;
     private final UserMapper userMapper;
+    private final ApplicationEventPublisher publisher;
 
-    public TaskUtilService(TaskUtilMapper taskUtilMapper, TaskService taskService, UserMapper userMapper) {
+    public TaskUtilService(TaskUtilMapper taskUtilMapper, TaskService taskService, UserMapper userMapper, ApplicationEventPublisher publisher) {
         this.taskUtilMapper = taskUtilMapper;
         this.taskService = taskService;
         this.userMapper = userMapper;
+        this.publisher = publisher;
     }
 
     @Transactional
@@ -50,6 +55,13 @@ public class TaskUtilService {
                 request.dependencies(),
                 task.getProjectId()
         );
+
+        publisher.publishEvent(
+                new TaskDependenciesReplacedEvent(
+                        task.getId(),
+                        task.getProjectId()
+                )
+        );
     }
 
 
@@ -65,5 +77,12 @@ public class TaskUtilService {
         }
 
         taskUtilMapper.replaceAssignees(task.getId(), request.assignees(), user.getTeam().getId());
+
+        publisher.publishEvent(
+                new TaskAssigneesReplacedEvent(
+                        task.getId(),
+                        task.getProjectId()
+                )
+        );
     }
 }

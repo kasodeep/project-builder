@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="fury.deep.project_builder.repository.analytics.AnalyticsReadMapper">
+
+    <!-- PROJECT ANALYTICS -->
+    <select id="findProjectAnalytics"
+            resultType="fury.deep.project_builder.entity.analytics.ProjectAnalytics">
+        SELECT total_tasks     AS totalTasks,
+               completed_tasks AS completedTasks,
+               blocked_tasks   AS blockedTasks
+        FROM project_analytics
+        WHERE project_id = #{projectId}
+    </select>
+
+    <!-- STATUS DISTRIBUTION -->
+    <select id="findStatusDistribution"
+            resultType="fury.deep.project_builder.entity.analytics.StatusCount">
+        SELECT status,
+               task_count AS count
+        FROM project_task_status_analytics
+        WHERE project_id = #{projectId}
+    </select>
+
+    <!-- FEATURE ANALYTICS -->
+    <select id="findFeatureAnalytics"
+            resultType="fury.deep.project_builder.entity.analytics.FeatureAnalytics">
+        SELECT f.id                                             AS featureId,
+               f.name                                           AS featureName,
+               COUNT(t.id)                                      AS totalTasks,
+               COUNT(CASE WHEN t.status = 'DONE' THEN 1 END)    AS completedTasks,
+               COUNT(CASE WHEN t.status = 'BLOCKED' THEN 1 END) AS blockedTasks
+        FROM task t
+                 JOIN feature f ON f.id = t.feature_id
+        WHERE t.project_id = #{projectId}
+        GROUP BY f.id, f.name
+    </select>
+
+
+    <!-- USER DEPENDENCY RISK -->
+    <select id="findUserDependencyRisk"
+            resultType="fury.deep.project_builder.entity.analytics.UserRisk">
+        SELECT u.id                            AS userId,
+               u.username                      AS username,
+               COALESCE(udr.blocking_tasks, 0) AS blockingTasks,
+               COALESCE(udr.blocked_users, 0)  AS blockedUsers,
+               COALESCE(udr.risk_score, 0)     AS riskScore
+        FROM "user" u
+                 LEFT JOIN user_dependency_risk udr
+                           ON udr.user_id = u.id
+        WHERE u.id IN (
+            -- users assigned to tasks in the project
+            SELECT DISTINCT ta.user_id
+            FROM task_assignee ta
+                     JOIN task t ON t.id = ta.task_id
+            WHERE t.project_id = #{projectId}
+
+            UNION
+
+            -- project managers
+            SELECT pm.user_id
+            FROM project_manager pm
+            WHERE pm.project_id = #{projectId})
+    </select>
+
+</mapper>

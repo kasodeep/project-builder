@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="fury.deep.project_builder.repository.analytics.AnalyticsMapper">
+
+    <insert id="ensureProject">
+        INSERT INTO project_analytics (project_id)
+        VALUES (#{projectId}) ON CONFLICT DO NOTHING
+    </insert>
+
+    <insert id="ensureFeature">
+        INSERT INTO feature_analytics (feature_id)
+        VALUES (#{featureId}) ON CONFLICT DO NOTHING
+    </insert>
+
+    <insert id="ensureUserRisk">
+        INSERT INTO user_dependency_risk (user_id)
+        VALUES (#{userId}) ON CONFLICT DO NOTHING
+    </insert>
+
+    <update id="incTotalTasks">
+        UPDATE project_analytics
+        SET total_tasks = total_tasks + 1,
+            updated_at  = now()
+        WHERE project_id = #{projectId}
+    </update>
+
+    <update id="incCompletedTasks">
+        UPDATE project_analytics
+        SET completed_tasks = completed_tasks + 1
+        WHERE project_id = #{projectId}
+    </update>
+
+    <update id="decCompletedTasks">
+        UPDATE project_analytics
+        SET completed_tasks = completed_tasks - 1
+        WHERE project_id = #{projectId}
+    </update>
+
+    <update id="updateBlockedTasks">
+        UPDATE project_analytics
+        SET blocked_tasks = #{blocked},
+            updated_at    = now()
+        WHERE project_id = #{projectId}
+    </update>
+
+    <insert id="incStatus">
+        INSERT INTO project_task_status_analytics (project_id, status, task_count)
+        VALUES (#{projectId}, #{status}, 1) ON CONFLICT (project_id, status)
+        DO
+        UPDATE SET task_count = project_task_status_analytics.task_count + 1
+    </insert>
+
+    <update id="decStatus">
+        UPDATE project_task_status_analytics
+        SET task_count = task_count - 1
+        WHERE project_id = #{projectId}
+          AND status = #{status}
+    </update>
+
+    <update id="incFeatureTotal">
+        UPDATE feature_analytics
+        SET total_tasks = total_tasks + 1
+        WHERE feature_id = #{featureId}
+    </update>
+
+    <update id="incFeatureCompleted">
+        UPDATE feature_analytics
+        SET completed_tasks = completed_tasks + 1
+        WHERE feature_id = #{featureId}
+    </update>
+
+    <update id="decFeatureCompleted">
+        UPDATE feature_analytics
+        SET completed_tasks = completed_tasks - 1
+        WHERE feature_id = #{featureId}
+    </update>
+
+    <update id="updateFeatureBlocked">
+        UPDATE feature_analytics
+        SET blocked_tasks = #{blocked},
+            updated_at    = now()
+        WHERE feature_id = #{featureId}
+    </update>
+
+    <update id="updateUserRisk">
+        UPDATE user_dependency_risk
+        SET blocking_tasks = #{blocking},
+            blocked_users  = #{blockedUsers},
+            risk_score     = (#{blocking} * #{blockedUsers}),
+            updated_at     = now()
+        WHERE user_id = #{userId}
+    </update>
+
+    <select id="findFeatureIdByTask" resultType="string">
+        SELECT feature_id
+        FROM task
+        WHERE id = #{taskId}
+    </select>
+
+    <select id="findUsersAssignedToTask" resultType="string">
+        SELECT user_id
+        FROM task_assignee
+        WHERE task_id = #{taskId}
+    </select>
+
+    <select id="findUsersInProject" resultType="string">
+        SELECT DISTINCT ta.user_id
+        FROM task_assignee ta
+                 JOIN task t ON t.id = ta.task_id
+        WHERE t.project_id = #{projectId}
+    </select>
+
+    <select id="countBlockedTasks" resultType="int">
+        SELECT COUNT(DISTINCT t.id)
+        FROM task t
+                 JOIN task_dependency td ON td.task_id = t.id
+                 JOIN task dep ON dep.id = td.depends_on_task_id
+        WHERE t.project_id = #{projectId}
+          AND dep.status
+        <![CDATA[<>]]>
+              'COMPLETED'
+    </select>
+
+    <select id="countBlockedTasksByFeature" resultType="int">
+        SELECT COUNT(DISTINCT t.id)
+        FROM task t
+                 JOIN task_dependency td ON td.task_id = t.id
+                 JOIN task dep ON dep.id = td.depends_on_task_id
+        WHERE t.feature_id = #{featureId}
+          AND dep.status
+        <![CDATA[<>]]>
+              'COMPLETED'
+    </select>
+
+    <select id="countBlockingTasksForUser" resultType="int">
+        SELECT COUNT(DISTINCT td.depends_on_task_id)
+        FROM task_dependency td
+                 JOIN task_assignee ta ON ta.task_id = td.depends_on_task_id
+                 JOIN task t ON t.id = ta.task_id
+        WHERE ta.user_id = #{userId}
+          AND t.status
+        <![CDATA[<>]]>
+              'COMPLETED'
+    </select>
+
+    <select id="countBlockedUsersForUser" resultType="int">
+        SELECT COUNT(DISTINCT blocked.user_id)
+        FROM task_dependency td
+                 JOIN task_assignee blocker ON blocker.task_id = td.depends_on_task_id
+                 JOIN task_assignee blocked ON blocked.task_id = td.task_id
+                 JOIN task t ON t.id = td.depends_on_task_id
+        WHERE blocker.user_id = #{userId}
+          AND t.status
+        <![CDATA[<>]]>
+              'COMPLETED'
+    </select>
+
+</mapper>

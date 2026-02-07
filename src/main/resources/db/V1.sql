@@ -132,9 +132,3 @@ CREATE TABLE task_dependency
     CONSTRAINT chk_no_self_dependency
         CHECK (task_id <> depends_on_task_id)
 );
-
-
-
-
-
-

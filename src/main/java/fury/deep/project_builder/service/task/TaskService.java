@@ -5,10 +5,12 @@ import fury.deep.project_builder.dto.task.CreateTaskRequest;
 import fury.deep.project_builder.entity.task.Feature;
 import fury.deep.project_builder.entity.task.Task;
 import fury.deep.project_builder.entity.user.User;
+import fury.deep.project_builder.events.TaskCreatedEvent;
 import fury.deep.project_builder.exception.ResourceNotFoundException;
 import fury.deep.project_builder.repository.task.TaskMapper;
 import fury.deep.project_builder.service.FeatureService;
 import fury.deep.project_builder.service.project.ProjectService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,11 +23,13 @@ public class TaskService {
     private final TaskMapper taskMapper;
     private final ProjectService projectService;
     private final FeatureService featureService;
+    private final ApplicationEventPublisher publisher;
 
-    public TaskService(TaskMapper taskMapper, ProjectService projectService, FeatureService featureService) {
+    public TaskService(TaskMapper taskMapper, ProjectService projectService, FeatureService featureService, ApplicationEventPublisher publisher) {
         this.taskMapper = taskMapper;
         this.projectService = projectService;
         this.featureService = featureService;
+        this.publisher = publisher;
     }
 
     /**
@@ -38,6 +42,14 @@ public class TaskService {
 
         Task task = fromCreateTaskRequest(createTaskRequest, user, feature);
         taskMapper.insertTask(task);
+
+        publisher.publishEvent(
+                new TaskCreatedEvent(
+                        task.getId(),
+                        task.getProjectId(),
+                        task.getStatus()
+                )
+        );
     }
 
     /**
