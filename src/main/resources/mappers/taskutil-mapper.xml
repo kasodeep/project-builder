@@ -9,12 +9,22 @@
     <!-- Assignees                 -->
     <!-- ========================= -->
 
+    <!--
+        Deletes all assignees for a task.
+        Used before replaceAssignees to keep operation idempotent.
+    -->
     <delete id="deleteAssigneesByTaskId">
         DELETE
         FROM task_assignee
         WHERE task_id = #{taskId}
     </delete>
 
+    <!--
+        Inserts assignees for a task.
+        - Selects users by username
+        - Ensures they belong to the same team
+        - Avoids N inserts (single SQL)
+    -->
     <insert id="insertAssignees">
         INSERT INTO task_assignee (task_id, user_id)
         SELECT
@@ -36,12 +46,21 @@
     <!-- Dependencies              -->
     <!-- ========================= -->
 
+    <!--
+        Deletes all dependencies of a task.
+        Used as part of replaceDependencies.
+    -->
     <delete id="deleteDependenciesByTaskId">
         DELETE
         FROM task_dependency
         WHERE task_id = #{taskId}
     </delete>
 
+    <!--
+        Inserts dependencies for a task.
+        - Ensures all dependency tasks belong to same project
+        - Prevents cross-project dependency pollution
+    -->
     <insert id="insertDependencies">
         INSERT INTO task_dependency (task_id, depends_on_task_id)
         SELECT
@@ -59,13 +78,43 @@
         </foreach>
     </insert>
 
-    <select id="findAllDependenciesByProjectId"
-            resultType="fury.deep.project_builder.entity.task.TaskDependency">
-        SELECT td.task_id                       AS taskId,
-               ARRAY_AGG(td.depends_on_task_id) AS dependencies
-        FROM task_dependency td
-                 JOIN task t ON t.id = td.task_id
-        WHERE t.project_id = #{projectId}
-        GROUP BY td.task_id
+    <!-- ========================= -->
+    <!-- Cycle Detection (CORE)    -->
+    <!-- ========================= -->
+
+    <!--
+        Checks whether adding:
+            task_id -> depends_on_task_id
+        would introduce a cycle.
+
+        Logic:
+        1. Start from the dependency task (dependsOnTaskId)
+        2. Recursively walk its dependencies
+        3. If we ever reach baseTaskId, a cycle exists
+
+        This avoids loading the entire project dependency graph.
+        Time complexity depends only on reachable subgraph.
+    -->
+    <select id="createsCycle" resultType="boolean">
+        WITH RECURSIVE dependency_path AS (
+
+            -- Step 1: Start from the immediate dependency
+            SELECT td.depends_on_task_id
+            FROM task_dependency td
+            WHERE td.task_id = #{dependsOnTaskId}
+
+            UNION ALL
+
+            -- Step 2: Walk deeper dependencies
+            SELECT td.depends_on_task_id
+            FROM task_dependency td
+                     JOIN dependency_path dp
+                          ON td.task_id = dp.depends_on_task_id)
+
+        -- Step 3: If base task is reachable, cycle exists
+        SELECT EXISTS (SELECT 1
+                       FROM dependency_path
+                       WHERE depends_on_task_id = #{taskId})
     </select>
+
 </mapper>

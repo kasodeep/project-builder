@@ -3,18 +3,11 @@ package fury.deep.project_builder.service.task;
 import fury.deep.project_builder.dto.task.util.AddAssigneeRequest;
 import fury.deep.project_builder.dto.task.util.AddDependenciesRequest;
 import fury.deep.project_builder.entity.task.Task;
-import fury.deep.project_builder.entity.task.TaskDependency;
 import fury.deep.project_builder.entity.user.User;
 import fury.deep.project_builder.repository.UserMapper;
 import fury.deep.project_builder.repository.task.TaskUtilMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.Map;
-
-import static fury.deep.project_builder.graph.CycleDetection.buildGraph;
-import static fury.deep.project_builder.graph.CycleDetection.checkForCycle;
 
 @Service
 public class TaskUtilService {
@@ -44,10 +37,13 @@ public class TaskUtilService {
             );
         }
 
-        List<TaskDependency> existing = taskUtilMapper.findAllDependenciesByProjectId(task.getProjectId());
-
-        Map<String, List<String>> graph = buildGraph(existing, task.getId(), request.dependencies());
-        checkForCycle(graph);
+        for (String depId : request.dependencies()) {
+            boolean createsCycle =
+                    taskUtilMapper.createsCycle(task.getId(), depId);
+            if (createsCycle) {
+                throw new IllegalStateException("Dependency cycle detected");
+            }
+        }
 
         taskUtilMapper.replaceDependencies(
                 task.getId(),
