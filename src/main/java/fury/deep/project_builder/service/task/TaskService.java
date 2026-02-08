@@ -32,9 +32,6 @@ public class TaskService {
         this.publisher = publisher;
     }
 
-    /**
-     *
-     */
     @Transactional
     public void createTask(CreateTaskRequest createTaskRequest, User user) {
         projectService.validateAccess(createTaskRequest.projectId(), user);
@@ -56,7 +53,6 @@ public class TaskService {
      * Method validates and finds the task for the user.
      * Suppose we want the task without validation, which will be a rare use-case.
      * But, every findById or find methods with validation should work.
-     *
      */
     public Task findById(String taskId, User user) {
         Task taskById = taskMapper.findTaskById(taskId);

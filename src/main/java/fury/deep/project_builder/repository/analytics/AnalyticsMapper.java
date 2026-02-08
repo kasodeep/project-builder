@@ -2,7 +2,6 @@ package fury.deep.project_builder.repository.analytics;
 
 import org.apache.ibatis.annotations.Mapper;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @Mapper
@@ -30,6 +29,10 @@ public interface AnalyticsMapper {
 
     /* ---------- FEATURE ---------- */
     void incFeatureTotal(String featureId);
+
+    void incFeatureCompleted(String featureId);
+
+    void decFeatureCompleted(String featureId);
 
     void updateFeatureBlocked(String featureId, int blocked);
 

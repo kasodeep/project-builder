@@ -5,6 +5,11 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
+/**
+ * Request to replace the dependencies of a task.
+ *
+ * @author night_fury_44
+ */
 public record AddDependenciesRequest(
         @NotBlank String taskId,
         @NotNull

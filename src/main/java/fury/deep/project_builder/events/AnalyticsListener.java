@@ -8,9 +8,12 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
-
+/**
+ * Listener to update the project analytics when different events are fired.
+ * It uses a separate analytics mapper for separation of responsibility.
+ *
+ * @author night_fury_44
+ */
 @Service
 @RequiredArgsConstructor
 @EnableAsync
@@ -18,11 +21,13 @@ public class AnalyticsListener {
 
     private final AnalyticsMapper mapper;
 
-    /* ---------- TASK CREATED ---------- */
+    /**
+     * The method handles the task created event.
+     * It updated the project analytics, feature analytics and the status count metric.
+     */
     @Async
     @EventListener
     public void onTaskCreated(TaskCreatedEvent e) {
-
         mapper.ensureProject(e.projectId());
         mapper.incTotalTasks(e.projectId());
         mapper.incStatus(e.projectId(), e.status().name());
@@ -35,34 +40,42 @@ public class AnalyticsListener {
         if (featureId != null) {
             mapper.ensureFeature(featureId);
             mapper.incFeatureTotal(featureId);
+
+            if (e.status() == Status.COMPLETED) {
+                mapper.incFeatureCompleted(featureId);
+            }
         }
     }
 
-    /* ---------- STATUS CHANGE ---------- */
+    /**
+     * The method handles the status changed, to update the analytics.
+     */
     @Async
     @EventListener
     public void onStatusChanged(TaskStatusChangedEvent e) {
-
         mapper.decStatus(e.projectId(), e.oldStatus().name());
         mapper.incStatus(e.projectId(), e.newStatus().name());
 
-        if (e.oldStatus() != Status.COMPLETED
-                && e.newStatus() == Status.COMPLETED) {
+        String featureId = mapper.findFeatureIdByTask(e.taskId());
 
+        if (e.oldStatus() != Status.COMPLETED && e.newStatus() == Status.COMPLETED) {
             mapper.incCompletedTasks(e.projectId());
+            mapper.incFeatureCompleted(featureId);
         }
 
-        if (e.oldStatus() == Status.COMPLETED
-                && e.newStatus() != Status.COMPLETED) {
+        if (e.oldStatus() == Status.COMPLETED && e.newStatus() != Status.COMPLETED) {
             mapper.decCompletedTasks(e.projectId());
+            mapper.decFeatureCompleted(featureId);
         }
     }
 
-    /* ---------- DEPENDENCIES ---------- */
+    /**
+     * The method handles the dependencies changed event for a task.
+     * It updates the blocked tasks for project and feature.
+     */
     @Async
     @EventListener
     public void onDependenciesChanged(TaskDependenciesReplacedEvent e) {
-
         mapper.updateBlockedTasks(
                 e.projectId(),
                 mapper.countBlockedTasks(e.projectId())
@@ -86,11 +99,9 @@ public class AnalyticsListener {
         }
     }
 
-    /* ---------- ASSIGNEES ---------- */
     @Async
     @EventListener
     public void onAssigneesChanged(TaskAssigneesReplacedEvent e) {
-
         for (String userId : mapper.findUsersAssignedToTask(e.taskId())) {
             mapper.ensureUserRisk(userId);
             mapper.updateUserRisk(

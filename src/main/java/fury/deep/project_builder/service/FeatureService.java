@@ -27,12 +27,4 @@ public class FeatureService {
         if (feature == null) throw new ResourceNotFoundException(ErrorMessages.FEATURE_NOT_FOUND.formatted(id));
         return feature;
     }
-
-    public void existsById(String id) {
-        if (!featureMapper.existsById(id)) {
-            throw new ResourceNotFoundException(ErrorMessages
-                    .FEATURE_NOT_FOUND
-                    .formatted(id));
-        }
-    }
 }

@@ -29,7 +29,6 @@ public class TaskUtilService {
 
     @Transactional
     public void addDependencies(AddDependenciesRequest request, User user) {
-
         Task task = taskService.findById(request.taskId(), user);
 
         int validCount = taskService.countTasksInProject(

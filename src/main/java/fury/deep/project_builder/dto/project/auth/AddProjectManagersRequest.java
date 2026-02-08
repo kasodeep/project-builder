@@ -9,7 +9,6 @@ import java.util.List;
  * Request for updating the managers responsible to manage the project.
  *
  * @author - deep
- *
  */
 public record AddProjectManagersRequest(
         @NotBlank String projectId,

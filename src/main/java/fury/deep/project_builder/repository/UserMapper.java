@@ -14,5 +14,4 @@ public interface UserMapper {
     User findByUsername(String username);
 
     int countUsersInTeam(List<String> usernames, String teamId);
-
 }

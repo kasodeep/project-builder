@@ -5,6 +5,7 @@
 
 <mapper namespace="fury.deep.project_builder.repository.analytics.AnalyticsMapper">
 
+    <!--  Ensure ROWS  -->
     <insert id="ensureProject">
         INSERT INTO project_analytics (project_id)
         VALUES (#{projectId}) ON CONFLICT DO NOTHING
@@ -20,6 +21,7 @@
         VALUES (#{userId}) ON CONFLICT DO NOTHING
     </insert>
 
+    <!--  Project  -->
     <update id="incTotalTasks">
         UPDATE project_analytics
         SET total_tasks = total_tasks + 1,
@@ -60,6 +62,7 @@
           AND status = #{status}
     </update>
 
+    <!--  Feature  -->
     <update id="incFeatureTotal">
         UPDATE feature_analytics
         SET total_tasks = total_tasks + 1
@@ -85,6 +88,7 @@
         WHERE feature_id = #{featureId}
     </update>
 
+    <!--  User risk score  -->
     <update id="updateUserRisk">
         UPDATE user_dependency_risk
         SET blocking_tasks = #{blocking},
@@ -94,6 +98,7 @@
         WHERE user_id = #{userId}
     </update>
 
+    <!--  Lookup  -->
     <select id="findFeatureIdByTask" resultType="string">
         SELECT feature_id
         FROM task
@@ -157,5 +162,4 @@
         <![CDATA[<>]]>
               'COMPLETED'
     </select>
-
 </mapper>

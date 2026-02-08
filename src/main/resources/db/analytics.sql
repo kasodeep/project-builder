@@ -28,15 +28,6 @@ CREATE TABLE feature_analytics
     FOREIGN KEY (feature_id) REFERENCES feature (id) ON DELETE CASCADE
 );
 
-CREATE TABLE project_throughput
-(
-    project_id      VARCHAR(255) NOT NULL,
-    date            DATE         NOT NULL,
-    completed_tasks INTEGER      NOT NULL DEFAULT 0,
-    PRIMARY KEY (project_id, date),
-    FOREIGN KEY (project_id) REFERENCES project (id) ON DELETE CASCADE
-);
-
 CREATE TABLE user_dependency_risk
 (
     user_id        VARCHAR(255) PRIMARY KEY,

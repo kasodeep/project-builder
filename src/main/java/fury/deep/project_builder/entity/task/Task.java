@@ -9,6 +9,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * A task represents a unit quantity of work done on a project by group of people (assignees).
+ * It must belong to a project and categorized by feature.
+ * The priority metric is used to perform weighted analytics on the project.
+ */
 @Data
 @Builder
 @NoArgsConstructor

@@ -3,6 +3,7 @@ package fury.deep.project_builder.service.analytics;
 import fury.deep.project_builder.dto.analytics.*;
 import fury.deep.project_builder.entity.analytics.*;
 import fury.deep.project_builder.repository.analytics.AnalyticsReadMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,11 +19,9 @@ public class AnalyticsService {
         this.mapper = mapper;
     }
 
+    @Cacheable("project-dashboard")
     public DashboardAnalyticsDto getDashboard(String projectId) {
-
-        /* ---------- PROJECT ---------- */
-        ProjectAnalytics project =
-                mapper.findProjectAnalytics(projectId);
+        ProjectAnalytics project = mapper.findProjectAnalytics(projectId);
 
         Map<String, Integer> statusDistribution =
                 mapper.findStatusDistribution(projectId)
@@ -33,8 +32,7 @@ public class AnalyticsService {
                         ));
 
         double completionRatio =
-                project.totalTasks() == 0
-                        ? 0
+                project.totalTasks() == 0 ? 0
                         : (double) project.completedTasks() / project.totalTasks();
 
         ProjectAnalyticsDto projectDto =

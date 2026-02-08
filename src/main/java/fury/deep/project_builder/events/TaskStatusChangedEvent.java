@@ -4,6 +4,11 @@ import fury.deep.project_builder.entity.task.Status;
 
 import java.time.Instant;
 
+/**
+ * The event is fired when the status of a task has been modified.
+ *
+ * @author night_fury_44
+ */
 public record TaskStatusChangedEvent(
         String taskId,
         String projectId,
