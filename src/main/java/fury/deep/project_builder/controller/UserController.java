@@ -1,5 +1,6 @@
 package fury.deep.project_builder.controller;
 
+import fury.deep.project_builder.dto.user.UserLoginRequest;
 import fury.deep.project_builder.dto.user.UserRegisterRequest;
 import fury.deep.project_builder.service.UserService;
 import jakarta.validation.Valid;
@@ -24,5 +25,11 @@ public class UserController {
     public ResponseEntity<Void> registerUser(@Valid @RequestBody UserRegisterRequest userRegisterRequest) {
         userService.registerUser(userRegisterRequest);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<Void> loginUser(@Valid @RequestBody UserLoginRequest userLoginRequest) {
+        userService.loginUser(userLoginRequest);
+        return ResponseEntity.status(HttpStatus.OK).build();
     }
 }

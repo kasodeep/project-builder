@@ -1,7 +1,9 @@
 package fury.deep.project_builder.service;
 
+import fury.deep.project_builder.dto.user.UserLoginRequest;
 import fury.deep.project_builder.dto.user.UserRegisterRequest;
 import fury.deep.project_builder.entity.user.User;
+import fury.deep.project_builder.exception.UnAuthorizedException;
 import fury.deep.project_builder.repository.UserMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,13 @@ public class UserService {
 
         User user = fromUserRegisterRequest(userRegisterRequest);
         userMapper.registerUser(user, teamId);
+    }
+
+    public void loginUser(UserLoginRequest userLoginRequest) {
+        User user = userMapper.findByUsername(userLoginRequest.username());
+        if (user == null || !passwordEncoder.matches(userLoginRequest.password(), user.getPassword())) {
+            throw new UnAuthorizedException("User not authorized");
+        }
     }
 
     /**
