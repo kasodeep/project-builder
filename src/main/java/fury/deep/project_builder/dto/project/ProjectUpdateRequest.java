@@ -1,6 +1,7 @@
 package fury.deep.project_builder.dto.project;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 
@@ -12,8 +13,8 @@ import java.time.LocalDate;
 public record ProjectUpdateRequest(
         @NotBlank String projectId,
         @NotBlank String name,
-        @NotBlank LocalDate start,
-        @NotBlank LocalDate end
+        @NotNull LocalDate start,
+        @NotNull LocalDate end
 ) {
 }
 
