@@ -32,7 +32,6 @@ public class TaskController {
         return ResponseEntity.ok(task);
     }
 
-    // TODO: Some work to do for dashboard ofc.
     @GetMapping("/project/{projectId}")
     public ResponseEntity<List<Task>> getTasksByProjectId(@PathVariable String projectId) {
         List<Task> tasks = taskService.findTasksByProjectId(projectId, AuthContextHolder.getUser());

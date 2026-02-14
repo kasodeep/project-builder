@@ -52,8 +52,8 @@
                      resultMap="FeatureResultMap.featureMapAssociation"/>
 
         <collection property="dependencies"
-                    ofType="java.lang.String"
-                    column="depends_on_task_id"
-                    notNullColumn="depends_on_task_id"/>
+                    ofType="java.lang.String">
+            <result column="depends_on_task_id"/>
+        </collection>
     </resultMap>
 </mapper>

@@ -82,18 +82,18 @@
     </select>
 
     <select id="findTasksByProjectId"
-            resultMap="TaskResultMap.taskProjectViewMap">
+            resultMap="TaskResultMap.taskProjectViewMap"
+            resultOrdered="true">
 
         SELECT t.id   AS task_id,
                t.name AS task_name,
-
                f.id   AS feature_id,
                f.name AS feature_name,
-
                td.depends_on_task_id
         FROM task t
                  LEFT JOIN feature f ON f.id = t.feature_id
                  LEFT JOIN task_dependency td ON td.task_id = t.id
         WHERE t.project_id = #{projectId}
+        ORDER BY t.id
     </select>
 </mapper>
