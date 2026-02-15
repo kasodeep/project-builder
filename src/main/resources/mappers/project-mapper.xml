@@ -17,6 +17,26 @@
                 #{updatedBy})
     </insert>
 
+    <select id="calculateProjectProgress" resultType="int">
+        SELECT CASE
+                   WHEN COUNT(*) = 0 THEN 0
+                   ELSE FLOOR(
+                           100.0 * SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END)
+                               / COUNT(*)
+                        )
+                   END
+        FROM task
+        WHERE project_id = #{projectId}
+    </select>
+
+    <update id="updateProjectProgress">
+        UPDATE project
+        SET progress   = #{progress},
+            updated_at = now()
+        WHERE id = #{projectId}
+    </update>
+
+
     <select id="findById" parameterType="string" resultMap="ProjectResultMap.projectMap">
         SELECT p.id   AS project_id,
                p.name AS project_name,
@@ -31,8 +51,8 @@
                t.name AS team_name,
 
                COALESCE(
-                       array_agg(u.username) FILTER(WHERE u.username IS NOT NULL),
-                       '{}'
+                               array_agg(u.username) FILTER (WHERE u.username IS NOT NULL),
+                               '{}'
                )      AS managers
 
         FROM project p
@@ -60,8 +80,8 @@
                t.name AS team_name,
 
                COALESCE(
-                       array_agg(u.username) FILTER(WHERE u.username IS NOT NULL),
-                       '{}'
+                               array_agg(u.username) FILTER (WHERE u.username IS NOT NULL),
+                               '{}'
                )      AS managers
 
         FROM project p

@@ -2,8 +2,6 @@ package fury.deep.project_builder.events;
 
 import fury.deep.project_builder.entity.task.Status;
 
-import java.time.Instant;
-
 /**
  * The event is fired when the status of a task has been modified.
  *
@@ -13,8 +11,7 @@ public record TaskStatusChangedEvent(
         String taskId,
         String projectId,
         Status oldStatus,
-        Status newStatus,
-        Instant occurredAt
+        Status newStatus
 ) implements AnalyticsEvent {
 }
 

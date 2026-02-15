@@ -11,6 +11,10 @@ public interface TaskMapper {
 
     void insertTask(@Param("task") Task task);
 
+    void updateTask(@Param("task") Task task);
+
+    void deleteTask(@Param("taskId") String taskId);
+
     int countTasksInProject(List<String> tasks, String projectId);
 
     /**

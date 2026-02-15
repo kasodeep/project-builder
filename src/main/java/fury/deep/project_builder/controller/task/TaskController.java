@@ -1,6 +1,7 @@
 package fury.deep.project_builder.controller.task;
 
 import fury.deep.project_builder.dto.task.CreateTaskRequest;
+import fury.deep.project_builder.dto.task.UpdateTaskRequest;
 import fury.deep.project_builder.entity.task.Task;
 import fury.deep.project_builder.security.AuthContextHolder;
 import fury.deep.project_builder.service.task.TaskService;
@@ -23,6 +24,18 @@ public class TaskController {
     @PostMapping("/create")
     public ResponseEntity<Void> createTask(@Valid @RequestBody CreateTaskRequest createTaskRequest) {
         taskService.createTask(createTaskRequest, AuthContextHolder.getUser());
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/update")
+    public ResponseEntity<Void> updateTask(@Valid @RequestBody UpdateTaskRequest updateTaskRequest) {
+        taskService.updateTask(updateTaskRequest, AuthContextHolder.getUser());
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/delete/{taskId}")
+    public ResponseEntity<Void> deleteTask(@PathVariable String taskId) {
+        taskService.deleteTask(taskId, AuthContextHolder.getUser());
         return ResponseEntity.ok().build();
     }
 

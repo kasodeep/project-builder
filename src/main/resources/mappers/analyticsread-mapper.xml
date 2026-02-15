@@ -5,64 +5,58 @@
 
 <mapper namespace="fury.deep.project_builder.repository.analytics.AnalyticsReadMapper">
 
-    <!-- PROJECT ANALYTICS -->
-    <select id="findProjectAnalytics"
-            resultType="fury.deep.project_builder.entity.analytics.ProjectAnalytics">
-        SELECT total_tasks     AS totalTasks,
-               completed_tasks AS completedTasks,
-               blocked_tasks   AS blockedTasks
-        FROM project_analytics
+    <!-- PROJECT HEALTH -->
+    <select id="findProjectHealth"
+            resultType="fury.deep.project_builder.dto.analytics.ProjectHealthDto">
+        SELECT health_score           AS healthScore,
+               schedule_variance_days AS scheduleVarianceDays,
+               progress_variance_pct  AS progressVariancePct,
+               overdue_tasks          AS overdueTasks,
+               blocked_tasks          AS blockedTasks,
+               risk_level             AS riskLevel
+        FROM project_health
         WHERE project_id = #{projectId}
     </select>
 
-    <!-- STATUS DISTRIBUTION -->
-    <select id="findStatusDistribution"
-            resultType="fury.deep.project_builder.entity.analytics.StatusCount">
-        SELECT status,
-               task_count AS count
-        FROM project_task_status_analytics
+    <!-- FLOW -->
+    <select id="findProjectFlow"
+            resultType="fury.deep.project_builder.dto.analytics.ProjectFlowDto">
+        SELECT wip_count      AS wipCount,
+               throughput_7d  AS throughput7d,
+               throughput_30d AS throughput30d,
+               avg_cycle_time AS avgCycleTime,
+               reopened_tasks AS reopenedTasks
+        FROM project_flow_metrics
         WHERE project_id = #{projectId}
     </select>
 
-    <!-- FEATURE ANALYTICS -->
-    <select id="findFeatureAnalytics"
-            resultType="fury.deep.project_builder.entity.analytics.FeatureAnalytics">
-        SELECT f.id                                             AS featureId,
-               f.name                                           AS featureName,
-               COUNT(t.id)                                      AS totalTasks,
-               COUNT(CASE WHEN t.status = 'DONE' THEN 1 END)    AS completedTasks,
-               COUNT(CASE WHEN t.status = 'BLOCKED' THEN 1 END) AS blockedTasks
-        FROM task t
-                 JOIN feature f ON f.id = t.feature_id
-        WHERE t.project_id = #{projectId}
-        GROUP BY f.id, f.name
+    <!-- DEPENDENCY -->
+    <select id="findDependencyRisk"
+            resultType="fury.deep.project_builder.dto.analytics.DependencyRiskDto">
+        SELECT total_dependencies       AS totalDependencies,
+               blocked_dependency_count AS blockedDependencyCount,
+               critical_path_length     AS criticalPathLength,
+               dependency_density       AS dependencyDensity,
+               risk_score               AS riskScore
+        FROM project_dependency_risk
+        WHERE project_id = #{projectId}
     </select>
 
-
-    <!-- USER DEPENDENCY RISK -->
-    <select id="findUserDependencyRisk"
-            resultType="fury.deep.project_builder.entity.analytics.UserRisk">
-        SELECT u.id                            AS userId,
-               u.username                      AS username,
-               COALESCE(udr.blocking_tasks, 0) AS blockingTasks,
-               COALESCE(udr.blocked_users, 0)  AS blockedUsers,
-               COALESCE(udr.risk_score, 0)     AS riskScore
-        FROM "user" u
-                 LEFT JOIN user_dependency_risk udr
-                           ON udr.user_id = u.id
-        WHERE u.id IN (
-            -- users assigned to tasks in the project
-            SELECT DISTINCT ta.user_id
-            FROM task_assignee ta
-                     JOIN task t ON t.id = ta.task_id
-            WHERE t.project_id = #{projectId}
-
-            UNION
-
-            -- project managers
-            SELECT pm.user_id
-            FROM project_manager pm
-            WHERE pm.project_id = #{projectId})
+    <!-- TEAM -->
+    <select id="findTeamCapacity"
+            resultType="fury.deep.project_builder.dto.analytics.TeamCapacityDto">
+        SELECT active_projects          AS activeProjects,
+               active_tasks             AS activeTasks,
+               avg_tasks_per_user       AS avgTasksPerUser,
+               overloaded_users         AS overloadedUsers,
+               avg_completion_time_days AS avgCompletionTimeDays,
+               burnout_risk_score       AS burnoutRiskScore
+        FROM team_capacity_analytics
+        WHERE team_id = (
+            SELECT team_id
+            FROM project
+            WHERE id = #{projectId}
+        )
     </select>
 
 </mapper>

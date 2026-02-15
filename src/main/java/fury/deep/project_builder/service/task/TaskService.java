@@ -2,10 +2,14 @@ package fury.deep.project_builder.service.task;
 
 import fury.deep.project_builder.constants.ErrorMessages;
 import fury.deep.project_builder.dto.task.CreateTaskRequest;
+import fury.deep.project_builder.dto.task.UpdateTaskRequest;
 import fury.deep.project_builder.entity.task.Feature;
 import fury.deep.project_builder.entity.task.Task;
 import fury.deep.project_builder.entity.user.User;
 import fury.deep.project_builder.events.TaskCreatedEvent;
+import fury.deep.project_builder.events.TaskDeletedEvent;
+import fury.deep.project_builder.events.TaskStatusChangedEvent;
+import fury.deep.project_builder.events.TaskUpdatedEvent;
 import fury.deep.project_builder.exception.ResourceNotFoundException;
 import fury.deep.project_builder.repository.task.TaskMapper;
 import fury.deep.project_builder.service.FeatureService;
@@ -45,6 +49,56 @@ public class TaskService {
                         task.getId(),
                         task.getProjectId(),
                         task.getStatus()
+                )
+        );
+    }
+
+    @Transactional
+    public void updateTask(UpdateTaskRequest request, User user) {
+        Task existing = findById(request.id(), user); // includes access validation
+        Feature feature = featureService.findById(request.featureId());
+
+        existing.setName(request.name());
+        existing.setFeature(feature);
+        existing.setPriority(request.priority());
+        existing.setStatus(request.status());
+        existing.setStart(request.start());
+        existing.setEnd(request.end());
+        existing.setUpdatedAt(Instant.now());
+        existing.setUpdatedBy(user.getUsername());
+
+        taskMapper.updateTask(existing);
+
+        if (existing.getStatus() != request.status()) {
+            publisher.publishEvent(
+                    new TaskStatusChangedEvent(
+                            existing.getId(),
+                            existing.getProjectId(),
+                            existing.getStatus(),
+                            request.status()
+                    )
+            );
+        } else {
+            publisher.publishEvent(
+                    new TaskUpdatedEvent(
+                            existing.getId(),
+                            existing.getProjectId(),
+                            request.status()
+                    )
+            );
+        }
+    }
+
+    @Transactional
+    public void deleteTask(String taskId, User user) {
+        Task existing = findById(taskId, user); // includes validation
+
+        taskMapper.deleteTask(taskId);
+
+        publisher.publishEvent(
+                new TaskDeletedEvent(
+                        existing.getId(),
+                        existing.getProjectId()
                 )
         );
     }

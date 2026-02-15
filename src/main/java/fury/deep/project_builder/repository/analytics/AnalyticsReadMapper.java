@@ -1,28 +1,25 @@
 package fury.deep.project_builder.repository.analytics;
 
-import fury.deep.project_builder.entity.analytics.*;
+import fury.deep.project_builder.dto.analytics.*;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import java.util.List;
 
 @Mapper
 public interface AnalyticsReadMapper {
 
-    ProjectAnalytics findProjectAnalytics(
+    ProjectHealthDto findProjectHealth(
             @Param("projectId") String projectId
     );
 
-    List<StatusCount> findStatusDistribution(
+    ProjectFlowDto findProjectFlow(
             @Param("projectId") String projectId
     );
 
-    List<FeatureAnalytics> findFeatureAnalytics(
+    DependencyRiskDto findDependencyRisk(
             @Param("projectId") String projectId
     );
 
-    List<UserRisk> findUserDependencyRisk(
+    TeamCapacityDto findTeamCapacity(
             @Param("projectId") String projectId
     );
 }
-

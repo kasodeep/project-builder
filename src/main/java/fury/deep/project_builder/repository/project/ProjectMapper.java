@@ -12,6 +12,10 @@ public interface ProjectMapper {
 
     void insertProject(Project project);
 
+    int calculateProjectProgress(String projectId);
+
+    void updateProjectProgress(String projectId, int progress);
+
     // Since, no explicit @Param, any name can be used in the query with {}.
     Project findById(String projectId);
 

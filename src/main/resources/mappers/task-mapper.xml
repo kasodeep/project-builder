@@ -19,6 +19,24 @@
                 #{task.updatedAt})
     </insert>
 
+    <update id="updateTask">
+        UPDATE task
+        SET name       = #{task.name},
+            feature_id = #{task.feature.id},
+            priority   = #{task.priority},
+            status     = #{task.status},
+            start_date = #{task.start},
+            end_date   = #{task.end},
+            updated_by = #{task.updatedBy},
+            updated_at = #{task.updatedAt}
+        WHERE id = #{task.id}
+    </update>
+
+    <delete id="deleteTask">
+        DELETE FROM task
+        WHERE id = #{taskId}
+    </delete>
+
     <select id="countTasksInProject" resultType="int">
         SELECT COUNT(*)
         FROM "task" t

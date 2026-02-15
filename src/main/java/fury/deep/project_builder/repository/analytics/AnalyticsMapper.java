@@ -2,56 +2,47 @@ package fury.deep.project_builder.repository.analytics;
 
 import org.apache.ibatis.annotations.Mapper;
 
-import java.util.List;
-
 @Mapper
 public interface AnalyticsMapper {
 
-    /* ---------- ENSURE ROWS ---------- */
-    void ensureProject(String projectId);
+    /* ---------- ENSURE ---------- */
+    void ensureProjectHealth(String projectId);
+    void ensureFlow(String projectId);
+    void ensureDependency(String projectId);
+    void ensureTeamCapacity(String teamId);
 
-    void ensureFeature(String featureId);
+    /* ---------- FLOW ---------- */
+    void updateWip(String projectId, int wip);
+    void incrementThroughput(String projectId);
 
-    void ensureUserRisk(String userId);
+    /* ---------- DEPENDENCY ---------- */
+    void updateDependencyRisk(String projectId,
+                              int total,
+                              int blocked,
+                              double density,
+                              int risk);
 
-    /* ---------- PROJECT ---------- */
-    void incTotalTasks(String projectId);
+    /* ---------- TEAM ---------- */
+    void updateTeamCapacity(String teamId,
+                            int activeTasks,
+                            int avgTasks,
+                            int overloaded,
+                            int burnout);
 
-    void incCompletedTasks(String projectId);
-
-    void decCompletedTasks(String projectId);
-
-    void updateBlockedTasks(String projectId, int blocked);
-
-    void incStatus(String projectId, String status);
-
-    void decStatus(String projectId, String status);
-
-    /* ---------- FEATURE ---------- */
-    void incFeatureTotal(String featureId);
-
-    void incFeatureCompleted(String featureId);
-
-    void decFeatureCompleted(String featureId);
-
-    void updateFeatureBlocked(String featureId, int blocked);
-
-    /* ---------- USER RISK ---------- */
-    void updateUserRisk(String userId, int blocking, int blockedUsers);
+    /* ---------- HEALTH ---------- */
+    void updateProjectHealth(String projectId,
+                             int variance,
+                             int overdue,
+                             int blocked,
+                             int score,
+                             String riskLevel);
 
     /* ---------- LOOKUPS ---------- */
-    String findFeatureIdByTask(String taskId);
-
-    List<String> findUsersAssignedToTask(String taskId);
-
-    List<String> findUsersInProject(String projectId);
-
-    int countBlockedTasks(String projectId);
-
-    int countBlockedTasksByFeature(String featureId);
-
-    int countBlockingTasksForUser(String userId);
-
-    int countBlockedUsersForUser(String userId);
+    int countWip(String projectId);
+    int countOverdue(String projectId);
+    int countDependencies(String projectId);
+    int countBlockedDependencies(String projectId);
+    String findTeamByProject(String projectId);
+    int countActiveTasksByTeam(String teamId);
 }
 

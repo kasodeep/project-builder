@@ -10,7 +10,8 @@ public sealed interface AnalyticsEvent
         permits TaskCreatedEvent,
         TaskStatusChangedEvent,
         TaskDependenciesReplacedEvent,
-        TaskAssigneesReplacedEvent {
+        TaskAssigneesReplacedEvent,
+        TaskUpdatedEvent, TaskDeletedEvent {
 
     String projectId();
 }
