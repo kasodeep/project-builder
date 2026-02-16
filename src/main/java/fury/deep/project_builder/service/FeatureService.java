@@ -8,6 +8,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * List of service method providing exposure to feature.
+ *
+ * @author night_fury_44
+ */
 @Service
 public class FeatureService {
 
@@ -17,10 +22,18 @@ public class FeatureService {
         this.featureMapper = featureMapper;
     }
 
+    /**
+     * Method to find all the features present in the db.
+     *
+     */
     public List<Feature> findAllFeatures() {
         return featureMapper.findAll();
     }
 
+    /**
+     * Method to find a feature by its id.
+     *
+     */
     public Feature findById(String id) {
         Feature feature = featureMapper.findById(id);
 

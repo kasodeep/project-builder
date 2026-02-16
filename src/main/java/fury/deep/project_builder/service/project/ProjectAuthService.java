@@ -1,6 +1,5 @@
 package fury.deep.project_builder.service.project;
 
-import fury.deep.project_builder.dto.project.auth.AddProjectManagerResponse;
 import fury.deep.project_builder.dto.project.auth.AddProjectManagersRequest;
 import fury.deep.project_builder.entity.user.User;
 import fury.deep.project_builder.repository.UserMapper;
@@ -35,7 +34,7 @@ public class ProjectAuthService {
      *
      */
     @Transactional
-    public AddProjectManagerResponse addManagers(AddProjectManagersRequest request, User user) {
+    public void addManagers(AddProjectManagersRequest request, User user) {
         projectService.validateAccess(request.projectId(), user);
 
         // Owner cannot add himself
@@ -52,7 +51,6 @@ public class ProjectAuthService {
         }
 
         projectAuthMapper.replaceManagers(request.projectId(), request.managers(), user.getTeam().getId());
-        return new AddProjectManagerResponse(request.projectId(), request.managers());
     }
 }
 

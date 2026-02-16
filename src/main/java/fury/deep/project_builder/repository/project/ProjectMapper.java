@@ -12,16 +12,12 @@ public interface ProjectMapper {
 
     void insertProject(Project project);
 
-    int calculateProjectProgress(String projectId);
-
-    void updateProjectProgress(String projectId, int progress);
-
-    // Since, no explicit @Param, any name can be used in the query with {}.
-    Project findById(String projectId);
-
-    List<Project> findAll(String teamId);
-
     void updateProjectMetadata(ProjectUpdateRequest request, String updatedBy);
 
+    // Since, no explicit @Param, any name can be used in the query with {}.
+    List<Project> findAll(String teamId);
+
     boolean isOwnerOrManager(@Param("projectId") String projectId, @Param("username") String username);
+
+    void recomputeProjectProgress(String projectId);
 }

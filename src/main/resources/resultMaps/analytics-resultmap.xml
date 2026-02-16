@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="AnalyticsResultMap">
+    <resultMap id="dashboardMap"
+               type="fury.deep.project_builder.dto.analytics.DashboardAnalyticsDto">
+
+        <association property="health"
+                     javaType="fury.deep.project_builder.dto.analytics.ProjectHealthDto">
+            <result property="healthScore" column="healthScore"/>
+            <result property="overdueTasks" column="overdueTasks"/>
+            <result property="blockedTasks" column="blockedTasks"/>
+            <result property="riskLevel" column="riskLevel"/>
+        </association>
+
+        <association property="flow"
+                     javaType="fury.deep.project_builder.dto.analytics.ProjectFlowDto">
+            <result property="wipCount" column="wipCount"/>
+            <result property="throughput7d" column="throughput7d"/>
+            <result property="throughput30d" column="throughput30d"/>
+            <result property="avgCycleTime" column="avgCycleTime"/>
+            <result property="reopenedTasks" column="reopenedTasks"/>
+        </association>
+
+        <association property="dependency"
+                     javaType="fury.deep.project_builder.dto.analytics.DependencyRiskDto">
+            <result property="totalDependencies" column="totalDependencies"/>
+            <result property="blockedDependencyCount" column="blockedDependencyCount"/>
+            <result property="criticalPathLength" column="criticalPathLength"/>
+            <result property="dependencyDensity" column="dependencyDensity"/>
+            <result property="dependencyRiskScore" column="dependencyRiskScore"/>
+        </association>
+
+        <association property="team"
+                     javaType="fury.deep.project_builder.dto.analytics.TeamCapacityDto">
+            <result property="activeProjects" column="activeProjects"/>
+            <result property="activeTasks" column="activeTasks"/>
+            <result property="avgTasksPerUser" column="avgTasksPerUser"/>
+            <result property="overloadedUsers" column="overloadedUsers"/>
+            <result property="avgCompletionTimeDays" column="avgCompletionTimeDays"/>
+            <result property="burnoutRiskScore" column="burnoutRiskScore"/>
+        </association>
+    </resultMap>
+</mapper>
+

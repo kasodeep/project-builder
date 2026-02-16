@@ -16,7 +16,6 @@ import java.util.List;
  * Provides methods related to managing the project entity from creating, to update, to findAll.
  *
  * @author night_fury_44
- *
  */
 @Service
 public class ProjectService {
@@ -31,7 +30,6 @@ public class ProjectService {
 
     /**
      * The project can be created by MANAGER, and the team will be the one the user belongs to.
-     *
      */
     public void createProject(ProjectCreateRequest projectCreateRequest, User user) {
         if (user.getRole() != Role.MANAGER) {
@@ -44,7 +42,6 @@ public class ProjectService {
 
     /**
      * Method validates the access to the project and update the details accordingly.
-     *
      */
     public void updateProject(ProjectUpdateRequest request, User user) {
         validateAccess(request.projectId(), user);
@@ -60,7 +57,6 @@ public class ProjectService {
 
     /**
      * Checks the access by checking if the user is owner or manager.
-     *
      */
     public void validateAccess(String projectId, User user) {
         boolean allowed = projectMapper.isOwnerOrManager(projectId, user.getUsername());

@@ -14,6 +14,8 @@
         <result property="end" column="end_date"/>
         <result property="updatedBy" column="updated_by"/>
         <result property="updatedAt" column="updated_at"/>
+        <result property="startedAt" column="started_at"/>
+        <result property="completedAt" column="completed_at"/>
 
         <association property="feature" resultMap="FeatureResultMap.featureMapAssociation"/>
     </resultMap>

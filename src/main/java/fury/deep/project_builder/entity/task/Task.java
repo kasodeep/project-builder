@@ -31,4 +31,6 @@ public class Task {
     private LocalDate end;
     private String updatedBy;
     private Instant updatedAt;
+    private Instant startedAt;
+    private Instant completedAt;
 }

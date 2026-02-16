@@ -8,6 +8,12 @@ import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 
+/**
+ * Request for updating a task, belonging to a project, categorized by feature.
+ * The priority scale is assumed to be between 1-10.
+ *
+ * @author night_fury_44
+ */
 public record UpdateTaskRequest(
         @NotBlank String id,
         @NotBlank String name,

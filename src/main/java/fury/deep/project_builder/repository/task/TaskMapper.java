@@ -15,39 +15,11 @@ public interface TaskMapper {
 
     void deleteTask(@Param("taskId") String taskId);
 
-    int countTasksInProject(List<String> tasks, String projectId);
-
-    /**
-     * Fetch all tasks assigned to a user.
-     * Includes:
-     * - task metadata
-     * - feature
-     * - assignees
-     * Excludes:
-     * - dependencies
-     */
-    List<Task> findTasksByUserId(@Param("userId") String userId);
-
-    /**
-     * Fetch a single task by id.
-     * Includes:
-     * - metadata
-     * - feature
-     * - assignees
-     * - dependencies
-     */
     Task findTaskById(@Param("taskId") String taskId);
 
-    /**
-     * Fetch all tasks of a project (lightweight).
-     * Includes:
-     * - id
-     * - name
-     * - feature
-     * - dependencies
-     * Excludes:
-     * - assignees
-     * - metadata
-     */
+    List<Task> findTasksByUserId(@Param("userId") String userId);
+
     List<Task> findTasksByProjectId(@Param("projectId") String projectId);
+
+    int countTasksInProject(List<String> tasks, String projectId);
 }

@@ -17,56 +17,25 @@
                 #{updatedBy})
     </insert>
 
-    <select id="calculateProjectProgress" resultType="int">
-        SELECT CASE
-                   WHEN COUNT(*) = 0 THEN 0
-                   ELSE FLOOR(
-                           100.0 * SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END)
-                               / COUNT(*)
-                        )
-                   END
-        FROM task
-        WHERE project_id = #{projectId}
-    </select>
-
-    <update id="updateProjectProgress">
+    <update id="updateProjectMetadata">
         UPDATE project
-        SET progress   = #{progress},
+        <set>
+            <if test="request.name != null">
+                name = #{request.name},
+            </if>
+            <if test="request.start != null">
+                start_date = #{request.start},
+            </if>
+            <if test="request.end != null">
+                end_date = #{request.end},
+            </if>
+            updated_by = #{updatedBy},
             updated_at = now()
-        WHERE id = #{projectId}
+        </set>
+        WHERE id = #{request.projectId}
     </update>
 
-
-    <select id="findById" parameterType="string" resultMap="ProjectResultMap.projectMap">
-        SELECT p.id   AS project_id,
-               p.name AS project_name,
-               p.owner,
-               p.progress,
-               p.start_date,
-               p.end_date,
-               p.updated_by,
-               p.updated_at,
-
-               t.id   AS team_id,
-               t.name AS team_name,
-
-               COALESCE(
-                               array_agg(u.username) FILTER (WHERE u.username IS NOT NULL),
-                               '{}'
-               )      AS managers
-
-        FROM project p
-                 JOIN team t ON t.id = p.team_id
-                 LEFT JOIN project_manager pm ON pm.project_id = p.id
-                 LEFT JOIN "user" u ON u.id = pm.user_id
-
-        WHERE p.id = #{id}
-    </select>
-
-    <select id="findAll"
-            parameterType="string"
-            resultMap="ProjectResultMap.projectMap">
-
+    <select id="findAll" parameterType="string" resultMap="ProjectResultMap.projectMap">
         SELECT p.id   AS project_id,
                p.name AS project_name,
                p.owner,
@@ -92,28 +61,11 @@
         WHERE p.team_id = #{teamId}
 
         GROUP BY p.id,
-                 t.id
+                 t.id,
+                 p.updated_at -- Cause throwing error
 
         ORDER BY p.updated_at DESC
     </select>
-
-    <update id="updateProjectMetadata">
-        UPDATE project
-        <set>
-            <if test="request.name != null">
-                name = #{request.name},
-            </if>
-            <if test="request.start != null">
-                start_date = #{request.start},
-            </if>
-            <if test="request.end != null">
-                end_date = #{request.end},
-            </if>
-            updated_by = #{updatedBy},
-            updated_at = now()
-        </set>
-        WHERE id = #{request.projectId}
-    </update>
 
     <select id="isOwnerOrManager" resultType="boolean">
         SELECT EXISTS (SELECT 1
@@ -126,4 +78,19 @@
                                OR u.username = #{username}
                            ))
     </select>
+
+    <update id="recomputeProjectProgress">
+        UPDATE project p
+        SET progress   = (SELECT CASE
+                                     WHEN COUNT(*) = 0 THEN 0
+                                     ELSE FLOOR(
+                                             100.0 * SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END)
+                                                 / COUNT(*)
+                                          )
+                                     END
+                          FROM task t
+                          WHERE t.project_id = p.id),
+            updated_at = now()
+        WHERE p.id = #{projectId}
+    </update>
 </mapper>

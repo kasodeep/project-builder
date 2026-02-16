@@ -4,59 +4,52 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="fury.deep.project_builder.repository.analytics.AnalyticsReadMapper">
+    <select id="findDashboard" resultMap="AnalyticsResultMap.dashboardMap">
 
-    <!-- PROJECT HEALTH -->
-    <select id="findProjectHealth"
-            resultType="fury.deep.project_builder.dto.analytics.ProjectHealthDto">
-        SELECT health_score           AS healthScore,
-               schedule_variance_days AS scheduleVarianceDays,
-               progress_variance_pct  AS progressVariancePct,
-               overdue_tasks          AS overdueTasks,
-               blocked_tasks          AS blockedTasks,
-               risk_level             AS riskLevel
-        FROM project_health
-        WHERE project_id = #{projectId}
+        SELECT
+            -- Project Health
+            ph.health_score             AS healthScore,
+            ph.overdue_tasks            AS overdueTasks,
+            ph.blocked_tasks            AS blockedTasks,
+            ph.risk_level               AS riskLevel,
+
+            -- Flow
+            pf.wip_count                AS wipCount,
+            pf.throughput_7d            AS throughput7d,
+            pf.throughput_30d           AS throughput30d,
+            pf.avg_cycle_time_days      AS avgCycleTime,
+            pf.reopened_tasks           AS reopenedTasks,
+
+            -- Dependency
+            dr.total_dependencies       AS totalDependencies,
+            dr.blocked_dependency_count AS blockedDependencyCount,
+            dr.critical_path_length     AS criticalPathLength,
+            dr.dependency_density       AS dependencyDensity,
+            dr.risk_score               AS dependencyRiskScore,
+
+            -- Team
+            tc.active_projects          AS activeProjects,
+            tc.active_tasks             AS activeTasks,
+            tc.avg_tasks_per_user       AS avgTasksPerUser,
+            tc.overloaded_users         AS overloadedUsers,
+            tc.avg_completion_time_days AS avgCompletionTimeDays,
+            tc.burnout_risk_score       AS burnoutRiskScore
+
+        FROM project p
+
+                 LEFT JOIN project_health ph
+                           ON ph.project_id = p.id
+
+                 LEFT JOIN project_flow_metrics pf
+                           ON pf.project_id = p.id
+
+                 LEFT JOIN project_dependency_risk dr
+                           ON dr.project_id = p.id
+
+                 LEFT JOIN team_capacity_analytics tc
+                           ON tc.team_id = p.team_id
+
+        WHERE p.id = #{projectId}
+
     </select>
-
-    <!-- FLOW -->
-    <select id="findProjectFlow"
-            resultType="fury.deep.project_builder.dto.analytics.ProjectFlowDto">
-        SELECT wip_count      AS wipCount,
-               throughput_7d  AS throughput7d,
-               throughput_30d AS throughput30d,
-               avg_cycle_time AS avgCycleTime,
-               reopened_tasks AS reopenedTasks
-        FROM project_flow_metrics
-        WHERE project_id = #{projectId}
-    </select>
-
-    <!-- DEPENDENCY -->
-    <select id="findDependencyRisk"
-            resultType="fury.deep.project_builder.dto.analytics.DependencyRiskDto">
-        SELECT total_dependencies       AS totalDependencies,
-               blocked_dependency_count AS blockedDependencyCount,
-               critical_path_length     AS criticalPathLength,
-               dependency_density       AS dependencyDensity,
-               risk_score               AS riskScore
-        FROM project_dependency_risk
-        WHERE project_id = #{projectId}
-    </select>
-
-    <!-- TEAM -->
-    <select id="findTeamCapacity"
-            resultType="fury.deep.project_builder.dto.analytics.TeamCapacityDto">
-        SELECT active_projects          AS activeProjects,
-               active_tasks             AS activeTasks,
-               avg_tasks_per_user       AS avgTasksPerUser,
-               overloaded_users         AS overloadedUsers,
-               avg_completion_time_days AS avgCompletionTimeDays,
-               burnout_risk_score       AS burnoutRiskScore
-        FROM team_capacity_analytics
-        WHERE team_id = (
-            SELECT team_id
-            FROM project
-            WHERE id = #{projectId}
-        )
-    </select>
-
 </mapper>

@@ -12,6 +12,11 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Provides utility methods for tasks to replace assignees and dependencies.
+ *
+ * @author night_fury_44
+ */
 @Service
 public class TaskUtilService {
 
@@ -27,6 +32,11 @@ public class TaskUtilService {
         this.publisher = publisher;
     }
 
+    /**
+     * The method finds the task, and also validate the access internally by tS.
+     * Constraint check that all tasks must belong to the same project.
+     * It checks for each dependency, do we create a cycle or not.
+     */
     @Transactional
     public void addDependencies(AddDependenciesRequest request, User user) {
         Task task = taskService.findById(request.taskId(), user);
@@ -42,19 +52,13 @@ public class TaskUtilService {
         }
 
         for (String depId : request.dependencies()) {
-            boolean createsCycle =
-                    taskUtilMapper.createsCycle(task.getId(), depId);
+            boolean createsCycle = taskUtilMapper.createsCycle(task.getId(), depId);
             if (createsCycle) {
                 throw new IllegalStateException("Dependency cycle detected");
             }
         }
 
-        taskUtilMapper.replaceDependencies(
-                task.getId(),
-                request.dependencies(),
-                task.getProjectId()
-        );
-
+        taskUtilMapper.replaceDependencies(task.getId(), request.dependencies(), task.getProjectId());
         publisher.publishEvent(
                 new TaskDependenciesReplacedEvent(
                         task.getId(),
@@ -63,7 +67,10 @@ public class TaskUtilService {
         );
     }
 
-
+    /**
+     * The method validates the tasks.
+     * It checks that all users must belong to the same team.
+     */
     @Transactional
     public void addAssignees(AddAssigneeRequest request, User user) {
         Task task = taskService.findById(request.taskId(), user); // also validates the user.
@@ -76,7 +83,6 @@ public class TaskUtilService {
         }
 
         taskUtilMapper.replaceAssignees(task.getId(), request.assignees(), user.getTeam().getId());
-
         publisher.publishEvent(
                 new TaskAssigneesReplacedEvent(
                         task.getId(),

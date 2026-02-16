@@ -11,7 +11,5 @@ public interface FeatureMapper {
 
     List<Feature> findAll();
 
-    boolean existsById(@Param("id") String id);
-
     Feature findById(@Param("id") String id);
 }

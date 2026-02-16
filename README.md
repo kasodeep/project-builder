@@ -48,52 +48,65 @@
 Date only → LocalDate
 Event timestamp → Instant
 
+### Consistency
+
+1. When the application becomes read heavy and concurrency issues maybe present.
+2. We can apply pessimistic lock, isolation level = SERIALIZABLE, or optimistic lock.
+
+```sql
+SELECT id
+FROM project
+WHERE id = #{projectId}
+    FOR UPDATE
+```
+
 ```java
+
 @PostMapping("/auth/login")
 public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request,
                                           HttpServletResponse response) {
 
-  User user = authService.authenticate(request.username(), request.password());
+    User user = authService.authenticate(request.username(), request.password());
 
-  String accessToken = jwtService.createAccessToken(user);   // 5–15 min
-  String refreshToken = jwtService.createRefreshToken(user); // 15 days
+    String accessToken = jwtService.createAccessToken(user);   // 5–15 min
+    String refreshToken = jwtService.createRefreshToken(user); // 15 days
 
-  ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
-          .httpOnly(true)
-          .secure(true)              // true even in local if using https
-          .sameSite("Strict")
-          .path("/auth/refresh")
-          .maxAge(Duration.ofDays(15))
-          .build();
+    ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
+            .httpOnly(true)
+            .secure(true)              // true even in local if using https
+            .sameSite("Strict")
+            .path("/auth/refresh")
+            .maxAge(Duration.ofDays(15))
+            .build();
 
-  response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+    response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
-  return ResponseEntity.ok(new AuthResponse(accessToken));
+    return ResponseEntity.ok(new AuthResponse(accessToken));
 }
 
 @PostMapping("/auth/refresh")
 public ResponseEntity<AuthResponse> refresh(
         @CookieValue("refreshToken") String refreshToken) {
 
-  User user = jwtService.validateRefreshToken(refreshToken);
+    User user = jwtService.validateRefreshToken(refreshToken);
 
-  String newAccessToken = jwtService.createAccessToken(user);
+    String newAccessToken = jwtService.createAccessToken(user);
 
-  return ResponseEntity.ok(new AuthResponse(newAccessToken));
+    return ResponseEntity.ok(new AuthResponse(newAccessToken));
 }
 
 @PostMapping("/auth/logout")
 public ResponseEntity<Void> logout(HttpServletResponse response) {
 
-  ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
-          .httpOnly(true)
-          .secure(true)
-          .sameSite("Strict")
-          .path("/auth/refresh")
-          .maxAge(0)
-          .build();
+    ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+            .httpOnly(true)
+            .secure(true)
+            .sameSite("Strict")
+            .path("/auth/refresh")
+            .maxAge(0)
+            .build();
 
-  response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
-  return ResponseEntity.ok().build();
+    response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
+    return ResponseEntity.ok().build();
 }
 ```

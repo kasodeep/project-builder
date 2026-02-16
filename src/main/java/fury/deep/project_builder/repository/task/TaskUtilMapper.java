@@ -8,10 +8,6 @@ import java.util.List;
 @Mapper
 public interface TaskUtilMapper {
 
-    /* =========================
-       Assignees
-       ========================= */
-
     void deleteAssigneesByTaskId(@Param("taskId") String taskId);
 
     void insertAssignees(
@@ -20,18 +16,10 @@ public interface TaskUtilMapper {
             @Param("teamId") String teamId
     );
 
-    default void replaceAssignees(
-            String taskId,
-            List<String> assignees,
-            String teamId
-    ) {
+    default void replaceAssignees(String taskId, List<String> assignees, String teamId) {
         deleteAssigneesByTaskId(taskId);
         insertAssignees(taskId, assignees, teamId);
     }
-
-    /* =========================
-       Dependencies
-       ========================= */
 
     void deleteDependenciesByTaskId(@Param("taskId") String taskId);
 
@@ -41,24 +29,11 @@ public interface TaskUtilMapper {
             @Param("projectId") String projectId
     );
 
-    default void replaceDependencies(
-            String taskId,
-            List<String> dependencies,
-            String projectId
-    ) {
+    default void replaceDependencies(String taskId, List<String> dependencies, String projectId) {
         deleteDependenciesByTaskId(taskId);
         insertDependencies(taskId, dependencies, projectId);
     }
 
-    /* =========================
-       Cycle Detection (NEW)
-       ========================= */
-
-    /**
-     * Returns true if adding:
-     * taskId -> dependsOnTaskId
-     * would introduce a cycle.
-     */
     boolean createsCycle(
             @Param("taskId") String taskId,
             @Param("dependsOnTaskId") String dependsOnTaskId

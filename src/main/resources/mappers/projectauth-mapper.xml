@@ -26,5 +26,4 @@
             #{username}
         </foreach>
     </insert>
-
 </mapper>

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 /**
  * User service to manage the data related to User entity.
  *
+ * @author night_fury_44
  */
 @Service
 public class UserService {
@@ -39,6 +40,10 @@ public class UserService {
         userMapper.registerUser(user, teamId);
     }
 
+    /**
+     * For UI client to validate a user, and authenticate him/her.
+     *
+     */
     public void loginUser(UserLoginRequest userLoginRequest) {
         User user = userMapper.findByUsername(userLoginRequest.username());
         if (user == null || !passwordEncoder.matches(userLoginRequest.password(), user.getPassword())) {

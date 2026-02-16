@@ -15,10 +15,4 @@
         FROM feature
         WHERE id = #{id}
     </select>
-
-    <select id="existsById" resultType="boolean">
-        SELECT CASE WHEN COUNT(*) > 0 THEN TRUE ELSE FALSE END
-        FROM feature
-        WHERE id = #{id}
-    </select>
 </mapper>

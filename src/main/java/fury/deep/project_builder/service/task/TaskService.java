@@ -4,12 +4,10 @@ import fury.deep.project_builder.constants.ErrorMessages;
 import fury.deep.project_builder.dto.task.CreateTaskRequest;
 import fury.deep.project_builder.dto.task.UpdateTaskRequest;
 import fury.deep.project_builder.entity.task.Feature;
+import fury.deep.project_builder.entity.task.Status;
 import fury.deep.project_builder.entity.task.Task;
 import fury.deep.project_builder.entity.user.User;
-import fury.deep.project_builder.events.TaskCreatedEvent;
-import fury.deep.project_builder.events.TaskDeletedEvent;
-import fury.deep.project_builder.events.TaskStatusChangedEvent;
-import fury.deep.project_builder.events.TaskUpdatedEvent;
+import fury.deep.project_builder.events.*;
 import fury.deep.project_builder.exception.ResourceNotFoundException;
 import fury.deep.project_builder.repository.task.TaskMapper;
 import fury.deep.project_builder.service.FeatureService;
@@ -19,8 +17,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+/**
+ * Service related to tasks to provide CRUD operations with validations and status updates.
+ * A major event firing machine, cause each task related service call triggers multiple events.
+ *
+ * @author night_fury_44
+ */
 @Service
 public class TaskService {
 
@@ -36,12 +43,17 @@ public class TaskService {
         this.publisher = publisher;
     }
 
+    /**
+     * The method validated the access to project and feature.
+     * Then it creates the task and first the event.
+     */
     @Transactional
-    public void createTask(CreateTaskRequest createTaskRequest, User user) {
-        projectService.validateAccess(createTaskRequest.projectId(), user);
-        Feature feature = featureService.findById(createTaskRequest.featureId());
+    public void createTask(CreateTaskRequest request, User user) {
+        projectService.validateAccess(request.projectId(), user);
+        Feature feature = featureService.findById(request.featureId());
 
-        Task task = fromCreateTaskRequest(createTaskRequest, user, feature);
+        Task task = buildNewTask(request, user, feature);
+        applyInitialLifecycle(task);
         taskMapper.insertTask(task);
 
         publisher.publishEvent(
@@ -53,67 +65,50 @@ public class TaskService {
         );
     }
 
+    /**
+     * The method updates the tasks, applies the status transition.
+     * It fires the events based on the condition, of status change or static.
+     */
     @Transactional
     public void updateTask(UpdateTaskRequest request, User user) {
-        Task existing = findById(request.id(), user); // includes access validation
+        Task existing = findById(request.id(), user);
         Feature feature = featureService.findById(request.featureId());
+
+        Status oldStatus = existing.getStatus();
+        Status newStatus = request.status();
+
+        validateTransition(oldStatus, newStatus);
+        applyLifecycleTransition(existing, oldStatus, newStatus);
 
         existing.setName(request.name());
         existing.setFeature(feature);
         existing.setPriority(request.priority());
-        existing.setStatus(request.status());
         existing.setStart(request.start());
         existing.setEnd(request.end());
+        existing.setStatus(newStatus);
         existing.setUpdatedAt(Instant.now());
         existing.setUpdatedBy(user.getUsername());
 
         taskMapper.updateTask(existing);
-
-        if (existing.getStatus() != request.status()) {
-            publisher.publishEvent(
-                    new TaskStatusChangedEvent(
-                            existing.getId(),
-                            existing.getProjectId(),
-                            existing.getStatus(),
-                            request.status()
-                    )
-            );
-        } else {
-            publisher.publishEvent(
-                    new TaskUpdatedEvent(
-                            existing.getId(),
-                            existing.getProjectId(),
-                            request.status()
-                    )
-            );
-        }
+        publishStatusAwareEvent(existing, oldStatus, newStatus);
     }
 
     @Transactional
     public void deleteTask(String taskId, User user) {
-        Task existing = findById(taskId, user); // includes validation
-
+        Task existing = findById(taskId, user);
         taskMapper.deleteTask(taskId);
 
-        publisher.publishEvent(
-                new TaskDeletedEvent(
-                        existing.getId(),
-                        existing.getProjectId()
-                )
-        );
+        publisher.publishEvent(new TaskDeletedEvent(existing.getId(), existing.getProjectId()));
     }
 
-    /**
-     * Method validates and finds the task for the user.
-     * Suppose we want the task without validation, which will be a rare use-case.
-     * But, every findById or find methods with validation should work.
-     */
     public Task findById(String taskId, User user) {
-        Task taskById = taskMapper.findTaskById(taskId);
-        if (taskById == null) throw new ResourceNotFoundException(ErrorMessages.TASK_NOT_FOUND.formatted(taskId));
+        Task task = taskMapper.findTaskById(taskId);
+        if (task == null) {
+            throw new ResourceNotFoundException(ErrorMessages.TASK_NOT_FOUND.formatted(taskId));
+        }
 
-        projectService.validateAccess(taskById.getProjectId(), user);
-        return taskById;
+        projectService.validateAccess(task.getProjectId(), user);
+        return task;
     }
 
     public List<Task> tasksForUser(User user) {
@@ -129,15 +124,96 @@ public class TaskService {
         return taskMapper.countTasksInProject(tasks, projectId);
     }
 
-    private Task fromCreateTaskRequest(CreateTaskRequest createTaskRequest, User user, Feature feature) {
+    /**
+     * Updates the task when it is created depending on the status.
+     */
+    private void applyInitialLifecycle(Task task) {
+        Instant now = Instant.now();
+
+        if (task.getStatus() == Status.ACTIVE) {
+            task.setStartedAt(now);
+        }
+
+        if (task.getStatus() == Status.COMPLETED) {
+            task.setStartedAt(now);
+            task.setCompletedAt(now);
+        }
+    }
+
+    /**
+     * Applies the transition during the update.
+     */
+    private void applyLifecycleTransition(Task task, Status oldStatus, Status newStatus) {
+        if (oldStatus == newStatus) {
+            return;
+        }
+
+        Instant now = Instant.now();
+        // PENDING → ACTIVE
+        if (oldStatus == Status.PENDING && newStatus == Status.ACTIVE) {
+            if (task.getStartedAt() == null) {
+                task.setStartedAt(now);
+            }
+        }
+
+        // ACTIVE → COMPLETED
+        if (oldStatus == Status.ACTIVE && newStatus == Status.COMPLETED) {
+            task.setCompletedAt(now);
+        }
+
+        // COMPLETED → ACTIVE (Reopen)
+        if (oldStatus == Status.COMPLETED && newStatus == Status.ACTIVE) {
+            task.setCompletedAt(null);
+        }
+    }
+
+    private static final Map<Status, Set<Status>> ALLOWED_TRANSITIONS = Map.of(
+            Status.LOCKED, EnumSet.of(Status.PENDING),
+            Status.PENDING, EnumSet.of(Status.ACTIVE, Status.ARCHIVED),
+            Status.ACTIVE, EnumSet.of(Status.COMPLETED, Status.PENDING),
+            Status.COMPLETED, EnumSet.of(Status.ACTIVE, Status.ARCHIVED),
+            Status.ARCHIVED, EnumSet.noneOf(Status.class)
+    );
+
+    /**
+     * Validates the transition of task status from one to another.
+     */
+    private void validateTransition(Status oldStatus, Status newStatus) {
+        if (oldStatus == newStatus) {
+            return;
+        }
+
+        Set<Status> allowed = ALLOWED_TRANSITIONS.getOrDefault(oldStatus, EnumSet.noneOf(Status.class));
+        if (!allowed.contains(newStatus)) {
+            throw new IllegalStateException("Illegal status transition: " + oldStatus + " → " + newStatus);
+        }
+    }
+
+
+    /**
+     * Fires status changed event on changes in status, otherwise, fires the task update event.
+     */
+    private void publishStatusAwareEvent(Task task, Status oldStatus, Status newStatus) {
+        if (oldStatus != newStatus) {
+            publisher.publishEvent(
+                    new TaskStatusChangedEvent(task.getId(), task.getProjectId(), oldStatus, newStatus)
+            );
+        } else {
+            publisher.publishEvent(
+                    new TaskUpdatedEvent(task.getId(), task.getProjectId(), newStatus)
+            );
+        }
+    }
+
+    private Task buildNewTask(CreateTaskRequest request, User user, Feature feature) {
         return Task.builder()
-                .name(createTaskRequest.name())
-                .projectId(createTaskRequest.projectId())
+                .name(request.name())
+                .projectId(request.projectId())
                 .feature(feature)
-                .priority(createTaskRequest.priority())
-                .status(createTaskRequest.status())
-                .start(createTaskRequest.start())
-                .end(createTaskRequest.end())
+                .priority(request.priority())
+                .status(request.status())
+                .start(request.start())
+                .end(request.end())
                 .updatedAt(Instant.now())
                 .updatedBy(user.getUsername())
                 .build();

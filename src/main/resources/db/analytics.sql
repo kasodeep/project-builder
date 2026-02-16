@@ -5,9 +5,6 @@ CREATE TABLE project_health
 
     health_score           INTEGER     NOT NULL DEFAULT 100,
 
-    schedule_variance_days INTEGER     NOT NULL DEFAULT 0,
-    progress_variance_pct  INTEGER     NOT NULL DEFAULT 0,
-
     overdue_tasks          INTEGER     NOT NULL DEFAULT 0,
     blocked_tasks          INTEGER     NOT NULL DEFAULT 0,
 
@@ -28,7 +25,7 @@ CREATE TABLE project_flow_metrics
     throughput_7d  INTEGER     NOT NULL DEFAULT 0,
     throughput_30d INTEGER     NOT NULL DEFAULT 0,
 
-    avg_cycle_time INTEGER     NOT NULL DEFAULT 0,
+    avg_cycle_time_days INTEGER     NOT NULL DEFAULT 0,
     reopened_tasks INTEGER     NOT NULL DEFAULT 0,
 
     updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -75,3 +72,12 @@ CREATE TABLE team_capacity_analytics
 
     FOREIGN KEY (team_id) REFERENCES team (id) ON DELETE CASCADE
 );
+
+ALTER TABLE project_flow_metrics
+    ALTER COLUMN avg_cycle_time_days TYPE NUMERIC(10,2);
+
+ALTER TABLE team_capacity_analytics
+    ALTER COLUMN avg_tasks_per_user TYPE NUMERIC(10,2);
+
+ALTER TABLE team_capacity_analytics
+    ALTER COLUMN avg_completion_time_days TYPE NUMERIC(10,2);

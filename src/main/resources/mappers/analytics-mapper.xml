@@ -5,97 +5,90 @@
 
 <mapper namespace="fury.deep.project_builder.repository.analytics.AnalyticsMapper">
 
-    <!-- ================= ENSURE ROWS ================= -->
+    <!-- ===================================================== -->
+    <!-- ===================== ENSURE ======================== -->
+    <!-- ===================================================== -->
 
     <insert id="ensureProjectHealth">
         INSERT INTO project_health (project_id)
-        VALUES (#{projectId}) ON CONFLICT DO NOTHING
+        VALUES (#{projectId})
+            ON CONFLICT DO NOTHING
     </insert>
 
     <insert id="ensureFlow">
         INSERT INTO project_flow_metrics (project_id)
-        VALUES (#{projectId}) ON CONFLICT DO NOTHING
+        VALUES (#{projectId})
+            ON CONFLICT DO NOTHING
     </insert>
 
     <insert id="ensureDependency">
         INSERT INTO project_dependency_risk (project_id)
-        VALUES (#{projectId}) ON CONFLICT DO NOTHING
+        VALUES (#{projectId})
+            ON CONFLICT DO NOTHING
     </insert>
 
     <insert id="ensureTeamCapacity">
         INSERT INTO team_capacity_analytics (team_id)
-        VALUES (#{teamId}) ON CONFLICT DO NOTHING
+        VALUES (#{teamId})
+            ON CONFLICT DO NOTHING
     </insert>
 
-    <!-- ================= FLOW ================= -->
 
-    <update id="updateWip">
-        UPDATE project_flow_metrics
-        SET wip_count  = #{wip},
-            updated_at = now()
+    <!-- ===================================================== -->
+    <!-- ===================== FLOW ========================== -->
+    <!-- ===================================================== -->
+
+    <select id="countActiveWip" resultType="int">
+        SELECT COUNT(*)
+        FROM task
         WHERE project_id = #{projectId}
-    </update>
+          AND status = 'ACTIVE'
+    </select>
 
-    <update id="incrementThroughput">
+    <select id="countThroughput7d" resultType="int">
+        SELECT COUNT(*)
+        FROM task
+        WHERE project_id = #{projectId}
+          AND completed_at >= now() - interval '7 days'
+    </select>
+
+    <select id="countThroughput30d" resultType="int">
+        SELECT COUNT(*)
+        FROM task
+        WHERE project_id = #{projectId}
+          AND completed_at >= now() - interval '30 days'
+    </select>
+
+    <select id="calculateAvgCycleTime" resultType="double">
+        SELECT COALESCE(
+                       AVG(EXTRACT(EPOCH FROM (completed_at - started_at)) / 86400),
+                       0
+               )
+        FROM task
+        WHERE project_id = #{projectId}
+          AND completed_at IS NOT NULL
+          AND started_at IS NOT NULL
+    </select>
+
+    <update id="updateFlow">
         UPDATE project_flow_metrics
-        SET throughput_7d  = throughput_7d + 1,
-            throughput_30d = throughput_30d + 1,
+        SET wip_count      = #{wip},
+            throughput_7d  = #{throughput7d},
+            throughput_30d = #{throughput30d},
+            avg_cycle_time_days = #{avgCycle},
             updated_at     = now()
         WHERE project_id = #{projectId}
     </update>
 
-    <!-- ================= DEPENDENCY ================= -->
 
-    <update id="updateDependencyRisk">
-        UPDATE project_dependency_risk
-        SET total_dependencies       = #{total},
-            blocked_dependency_count = #{blocked},
-            dependency_density       = #{density},
-            risk_score               = #{risk},
-            updated_at               = now()
-        WHERE project_id = #{projectId}
-    </update>
+    <!-- ===================================================== -->
+    <!-- ================= DEPENDENCY RISK =================== -->
+    <!-- ===================================================== -->
 
-    <!-- ================= TEAM CAPACITY ================= -->
-
-    <update id="updateTeamCapacity">
-        UPDATE team_capacity_analytics
-        SET active_tasks       = #{activeTasks},
-            avg_tasks_per_user = #{avgTasks},
-            overloaded_users   = #{overloaded},
-            burnout_risk_score = #{burnout},
-            updated_at         = now()
-        WHERE team_id = #{teamId}
-    </update>
-
-    <!-- ================= PROJECT HEALTH ================= -->
-
-    <update id="updateProjectHealth">
-        UPDATE project_health
-        SET schedule_variance_days = #{variance},
-            overdue_tasks          = #{overdue},
-            blocked_tasks          = #{blocked},
-            health_score           = #{score},
-            risk_level             = #{riskLevel},
-            updated_at             = now()
-        WHERE project_id = #{projectId}
-    </update>
-
-    <!-- ================= LOOKUPS ================= -->
-
-    <select id="countWip" resultType="int">
+    <select id="countTasks" resultType="int">
         SELECT COUNT(*)
         FROM task
         WHERE project_id = #{projectId}
-          AND status NOT IN ('COMPLETED')
-    </select>
-
-    <select id="countOverdue" resultType="int">
-        SELECT COUNT(*)
-        FROM task
-        WHERE project_id = #{projectId}
-          AND end_date <![CDATA[ < ]]> CURRENT_DATE
-          AND status <![CDATA[ <> ]]> 'COMPLETED'
     </select>
 
     <select id="countDependencies" resultType="int">
@@ -106,13 +99,167 @@
     </select>
 
     <select id="countBlockedDependencies" resultType="int">
+        <![CDATA[
         SELECT COUNT(*)
         FROM task_dependency td
                  JOIN task dep ON dep.id = td.depends_on_task_id
                  JOIN task t ON t.id = td.task_id
         WHERE t.project_id = #{projectId}
-          AND dep.status <![CDATA[ <> ]]> 'COMPLETED'
+          AND dep.status <> 'COMPLETED'
+        ]]>
     </select>
+
+    <select id="calculateCriticalPath" resultType="int">
+        <![CDATA[
+        WITH RECURSIVE dependency_tree AS (
+            SELECT td.task_id,
+                   td.depends_on_task_id,
+                   1 AS depth
+            FROM task_dependency td
+                     JOIN task t ON t.id = td.task_id
+            WHERE t.project_id = #{projectId}
+
+            UNION ALL
+
+            SELECT dt.task_id,
+                   td.depends_on_task_id,
+                   dt.depth + 1
+            FROM dependency_tree dt
+                     JOIN task_dependency td
+                          ON dt.depends_on_task_id = td.task_id
+        )
+        SELECT COALESCE(MAX(depth), 0)
+        FROM dependency_tree
+        ]]>
+    </select>
+
+    <update id="updateDependencyRisk">
+        UPDATE project_dependency_risk
+        SET total_dependencies       = #{total},
+            blocked_dependency_count = #{blocked},
+            critical_path_length     = #{criticalPath},
+            dependency_density       = #{density},
+            risk_score               = #{risk},
+            updated_at               = now()
+        WHERE project_id = #{projectId}
+    </update>
+
+
+    <!-- ===================================================== -->
+    <!-- ================= TEAM CAPACITY ===================== -->
+    <!-- ===================================================== -->
+
+    <select id="countActiveTasksByTeam" resultType="int">
+        <![CDATA[
+        SELECT COUNT(*)
+        FROM task t
+                 JOIN project p ON p.id = t.project_id
+        WHERE p.team_id = #{teamId}
+          AND t.status <> 'COMPLETED'
+        ]]>
+    </select>
+
+    <select id="calculateAvgTasksPerUser" resultType="double">
+        <![CDATA[
+        SELECT COALESCE(AVG(task_count), 0)
+        FROM (SELECT COUNT(*) AS task_count
+              FROM task_assignee ta
+                       JOIN task t ON t.id = ta.task_id
+                       JOIN project p ON p.id = t.project_id
+              WHERE p.team_id = #{teamId}
+                AND t.status <> 'COMPLETED'
+              GROUP BY ta.user_id) s
+        ]]>
+    </select>
+
+    <select id="countOverloadedUsers" resultType="int">
+        <![CDATA[
+        SELECT COUNT(*)
+        FROM (
+                 SELECT ta.user_id, COUNT(*) AS task_count
+                 FROM task_assignee ta
+                          JOIN task t ON t.id = ta.task_id
+                          JOIN project p ON p.id = t.project_id
+                 WHERE p.team_id = #{teamId}
+                   AND t.status <> 'COMPLETED'
+                 GROUP BY ta.user_id
+                 HAVING COUNT(*) > #{threshold}
+             ) s
+        ]]>
+    </select>
+
+    <select id="countActiveProjectsByTeam" resultType="int">
+        SELECT COUNT(*)
+        FROM project
+        WHERE team_id = #{teamId}
+    </select>
+
+    <select id="calculateAvgCompletionTime" resultType="double">
+        <![CDATA[
+        SELECT COALESCE(
+                       AVG(EXTRACT(EPOCH FROM (completed_at - started_at)) / 86400),
+                       0
+               )
+        FROM task t
+                 JOIN project p ON p.id = t.project_id
+        WHERE p.team_id = #{teamId}
+          AND completed_at IS NOT NULL
+          AND started_at IS NOT NULL
+        ]]>
+    </select>
+
+    <update id="updateTeamCapacity">
+        UPDATE team_capacity_analytics
+        SET active_projects          = #{activeProjects},
+            active_tasks             = #{activeTasks},
+            avg_tasks_per_user       = #{avgTasks},
+            overloaded_users         = #{overloaded},
+            avg_completion_time_days = #{avgCompletion},
+            burnout_risk_score       = #{burnout},
+            updated_at               = now()
+        WHERE team_id = #{teamId}
+    </update>
+
+
+    <!-- ===================================================== -->
+    <!-- ================= PROJECT HEALTH ==================== -->
+    <!-- ===================================================== -->
+
+    <select id="countLongRunningTasks" resultType="int">
+        <![CDATA[
+        SELECT COUNT(*)
+        FROM task
+        WHERE project_id = #{projectId}
+          AND started_at IS NOT NULL
+          AND completed_at IS NULL
+          AND started_at < now() - interval '14 days'
+        ]]>
+    </select>
+
+    <select id="countOverdue" resultType="int">
+        <![CDATA[
+        SELECT COUNT(*)
+        FROM task
+        WHERE project_id = #{projectId}
+          AND end_date < CURRENT_DATE
+          AND status <> 'COMPLETED'
+        ]]>
+    </select>
+
+    <update id="updateProjectHealth">
+        UPDATE project_health
+        SET overdue_tasks = #{overdue},
+            blocked_tasks = #{blocked},
+            health_score  = #{score},
+            risk_level    = #{riskLevel},
+            updated_at    = now()
+        WHERE project_id = #{projectId}
+    </update>
+
+
+    <!-- ===================================================== -->
+    <!-- ================= LOOKUPS =========================== -->
+    <!-- ===================================================== -->
 
     <select id="findTeamByProject" resultType="string">
         SELECT team_id
@@ -120,12 +267,4 @@
         WHERE id = #{projectId}
     </select>
 
-    <select id="countActiveTasksByTeam" resultType="int">
-        SELECT COUNT(*)
-        FROM task t
-                 JOIN project p ON p.id = t.project_id
-        WHERE p.team_id = #{teamId}
-          AND t.status <![CDATA[ <> ]]> 'COMPLETED'
-    </select>
 </mapper>
-

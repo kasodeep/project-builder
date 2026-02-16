@@ -8,6 +8,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * List of services related to the team, which binds the project.
+ *
+ * @author night_fury_44
+ */
 @Service
 public class TeamService {
 
@@ -17,10 +22,18 @@ public class TeamService {
         this.teamMapper = teamMapper;
     }
 
+    /**
+     * The method returns all the team that are present.
+     *
+     */
     public List<Team> findAllTeams() {
         return teamMapper.findAll();
     }
 
+    /**
+     * The method try to find the team by the given id.
+     *
+     */
     public Team findById(String id) {
         Team team = teamMapper.findById(id);
 
@@ -28,6 +41,10 @@ public class TeamService {
         return team;
     }
 
+    /**
+     * Validation to check if the given team exists on basis of id.
+     *
+     */
     public void existsById(String id) {
         if (!teamMapper.existsById(id)) {
             throw new ResourceNotFoundException(ErrorMessages

@@ -5,6 +5,10 @@ import fury.deep.project_builder.repository.analytics.AnalyticsReadMapper;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service class to fetch all the analytics for a given project.
+ *
+ */
 @Service
 public class AnalyticsService {
 
@@ -16,17 +20,6 @@ public class AnalyticsService {
 
     @Cacheable("project-dashboard")
     public DashboardAnalyticsDto getDashboard(String projectId) {
-
-        ProjectHealthDto health = mapper.findProjectHealth(projectId);
-        ProjectFlowDto flow = mapper.findProjectFlow(projectId);
-        DependencyRiskDto dependency = mapper.findDependencyRisk(projectId);
-        TeamCapacityDto team = mapper.findTeamCapacity(projectId);
-
-        return new DashboardAnalyticsDto(
-                health,
-                flow,
-                dependency,
-                team
-        );
+        return mapper.findDashboard(projectId);
     }
 }

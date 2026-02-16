@@ -27,7 +27,10 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     private final String[] WHITELIST_URLS = {
             "/api/v1/auth",
             "/api/v1/team",
-            "/api/v1/feature"
+            "/api/v1/feature",
+            "/v3/api-docs",
+            "/swagger-ui",
+            "/swagger-ui.html"
     };
 
     private final UserMapper userMapper;

@@ -18,6 +18,7 @@ public class AnalyticsController {
         this.analyticsService = analyticsService;
     }
 
+    // todo: Add authentication, plus docs.
     @GetMapping("/{projectId}")
     public ResponseEntity<DashboardAnalyticsDto> projectDashboard(@PathVariable String projectId) {
         DashboardAnalyticsDto dashboard = analyticsService.getDashboard(projectId);

@@ -5,26 +5,12 @@
 
 <mapper namespace="fury.deep.project_builder.repository.task.TaskUtilMapper">
 
-    <!-- ========================= -->
-    <!-- Assignees                 -->
-    <!-- ========================= -->
-
-    <!--
-        Deletes all assignees for a task.
-        Used before replaceAssignees to keep operation idempotent.
-    -->
     <delete id="deleteAssigneesByTaskId">
         DELETE
         FROM task_assignee
         WHERE task_id = #{taskId}
     </delete>
 
-    <!--
-        Inserts assignees for a task.
-        - Selects users by username
-        - Ensures they belong to the same team
-        - Avoids N inserts (single SQL)
-    -->
     <insert id="insertAssignees">
         INSERT INTO task_assignee (task_id, user_id)
         SELECT
@@ -42,25 +28,12 @@
         </foreach>
     </insert>
 
-    <!-- ========================= -->
-    <!-- Dependencies              -->
-    <!-- ========================= -->
-
-    <!--
-        Deletes all dependencies of a task.
-        Used as part of replaceDependencies.
-    -->
     <delete id="deleteDependenciesByTaskId">
         DELETE
         FROM task_dependency
         WHERE task_id = #{taskId}
     </delete>
 
-    <!--
-        Inserts dependencies for a task.
-        - Ensures all dependency tasks belong to same project
-        - Prevents cross-project dependency pollution
-    -->
     <insert id="insertDependencies">
         INSERT INTO task_dependency (task_id, depends_on_task_id)
         SELECT

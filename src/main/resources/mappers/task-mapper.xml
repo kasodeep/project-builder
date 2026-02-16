@@ -7,7 +7,8 @@
 
     <insert id="insertTask" useGeneratedKeys="true" keyProperty="task.id">
         INSERT INTO task
-        (name, project_id, feature_id, priority, status, start_date, end_date, updated_by, updated_at)
+        (name, project_id, feature_id, priority, status, start_date, end_date, started_at, completed_at, updated_by,
+         updated_at)
         VALUES (#{task.name},
                 #{task.projectId},
                 #{task.feature.id},
@@ -15,64 +16,32 @@
                 #{task.status},
                 #{task.start},
                 #{task.end},
+                #{task.startedAt},
+                #{task.completedAt},
                 #{task.updatedBy},
                 #{task.updatedAt})
     </insert>
 
     <update id="updateTask">
         UPDATE task
-        SET name       = #{task.name},
-            feature_id = #{task.feature.id},
-            priority   = #{task.priority},
-            status     = #{task.status},
-            start_date = #{task.start},
-            end_date   = #{task.end},
-            updated_by = #{task.updatedBy},
-            updated_at = #{task.updatedAt}
+        SET name         = #{task.name},
+            feature_id   = #{task.feature.id},
+            priority     = #{task.priority},
+            status       = #{task.status},
+            start_date   = #{task.start},
+            end_date     = #{task.end},
+            started_at   = #{task.startedAt},
+            completed_at = #{task.completedAt},
+            updated_by   = #{task.updatedBy},
+            updated_at   = #{task.updatedAt}
         WHERE id = #{task.id}
     </update>
 
     <delete id="deleteTask">
-        DELETE FROM task
+        DELETE
+        FROM task
         WHERE id = #{taskId}
     </delete>
-
-    <select id="countTasksInProject" resultType="int">
-        SELECT COUNT(*)
-        FROM "task" t
-        WHERE t.project_id = #{projectId}
-        AND t.id IN
-        <foreach collection="tasks"
-                 item="task"
-                 open="("
-                 separator=","
-                 close=")">
-            #{task}
-        </foreach>
-    </select>
-
-    <select id="findTasksByUserId"
-            resultMap="TaskResultMap.taskWithAssigneesMap">
-
-        SELECT t.id   AS task_id,
-               t.project_id,
-               t.name AS task_name,
-               t.priority,
-               t.status,
-               t.start_date,
-               t.end_date,
-               t.updated_by,
-               t.updated_at,
-
-               f.id   AS feature_id,
-               f.name AS feature_name,
-
-               ta.user_id
-        FROM task t
-                 JOIN task_assignee ta ON ta.task_id = t.id
-                 LEFT JOIN feature f ON f.id = t.feature_id
-        WHERE ta.user_id = #{userId}
-    </select>
 
     <select id="findTaskById"
             resultMap="TaskResultMap.taskFullMap">
@@ -86,6 +55,8 @@
                t.end_date,
                t.updated_by,
                t.updated_at,
+               t.started_at,
+               t.completed_at,
 
                f.id       AS feature_id,
                f.name     AS feature_name,
@@ -97,6 +68,29 @@
                  LEFT JOIN task_assignee ta ON ta.task_id = t.id
                  LEFT JOIN task_dependency td ON td.task_id = t.id
         WHERE t.id = #{taskId}
+    </select>
+
+    <select id="findTasksByUserId" resultMap="TaskResultMap.taskWithAssigneesMap">
+        SELECT t.id   AS task_id,
+               t.project_id,
+               t.name AS task_name,
+               t.priority,
+               t.status,
+               t.start_date,
+               t.end_date,
+               t.updated_by,
+               t.updated_at,
+               t.started_at,
+               t.completed_at,
+
+               f.id   AS feature_id,
+               f.name AS feature_name,
+
+               ta.user_id
+        FROM task t
+                 JOIN task_assignee ta ON ta.task_id = t.id
+                 LEFT JOIN feature f ON f.id = t.feature_id
+        WHERE ta.user_id = #{userId}
     </select>
 
     <select id="findTasksByProjectId"
@@ -113,5 +107,19 @@
                  LEFT JOIN task_dependency td ON td.task_id = t.id
         WHERE t.project_id = #{projectId}
         ORDER BY t.id
+    </select>
+
+    <select id="countTasksInProject" resultType="int">
+        SELECT COUNT(*)
+        FROM "task" t
+        WHERE t.project_id = #{projectId}
+        AND t.id IN
+        <foreach collection="tasks"
+                 item="task"
+                 open="("
+                 separator=","
+                 close=")">
+            #{task}
+        </foreach>
     </select>
 </mapper>
