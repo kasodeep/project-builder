@@ -75,14 +75,14 @@ public class TaskUtilService {
     public void addAssignees(AddAssigneeRequest request, User user) {
         Task task = taskService.findById(request.taskId(), user); // also validates the user.
 
-        int validCount = userMapper.countUsersInTeam(request.assignees(), user.getTeam().getId());
+        int validCount = userMapper.countUsersInTeam(request.assignees(), user.getTeamId());
         if (validCount != request.assignees().size()) {
             throw new IllegalArgumentException(
                     "All managers must belong to the same team as the project"
             );
         }
 
-        taskUtilMapper.replaceAssignees(task.getId(), request.assignees(), user.getTeam().getId());
+        taskUtilMapper.replaceAssignees(task.getId(), request.assignees(), user.getTeamId());
         publisher.publishEvent(
                 new TaskAssigneesReplacedEvent(
                         task.getId(),

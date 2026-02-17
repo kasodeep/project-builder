@@ -43,14 +43,14 @@ public class ProjectAuthService {
         }
 
         // Validate all users belong to same team
-        int validCount = userMapper.countUsersInTeam(request.managers(), user.getTeam().getId());
+        int validCount = userMapper.countUsersInTeam(request.managers(), user.getTeamId());
         if (validCount != request.managers().size()) {
             throw new IllegalArgumentException(
                     "All managers must belong to the same team as the project"
             );
         }
 
-        projectAuthMapper.replaceManagers(request.projectId(), request.managers(), user.getTeam().getId());
+        projectAuthMapper.replaceManagers(request.projectId(), request.managers(), user.getTeamId());
     }
 }
 

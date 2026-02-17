@@ -17,17 +17,14 @@
     </insert>
 
     <select id="findByUsername" parameterType="string" resultMap="UserResultMap.userMap">
-        SELECT u.id   AS user_id,
-               u.username,
-               u.email,
-               u.password,
-               u.role,
-               t.id   AS team_id,
-               t.name AS team_name
-
-        FROM "user" u
-                 JOIN team t ON u.team_id = t.id
-        WHERE u.username = #{username}
+        SELECT id,
+               username,
+               email,
+               password,
+               role,
+               team_id
+        FROM "user"
+        WHERE username = #{username}
     </select>
 
     <select id="countUsersInTeam" resultType="int">

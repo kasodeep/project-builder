@@ -10,7 +10,7 @@ import java.util.List;
 @Mapper
 public interface ProjectMapper {
 
-    void insertProject(Project project);
+    void insertProject(Project project, String teamId);
 
     void updateProjectMetadata(ProjectUpdateRequest request, String updatedBy);
 

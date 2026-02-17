@@ -1,6 +1,5 @@
 package fury.deep.project_builder.entity.user;
 
-import fury.deep.project_builder.entity.team.Team;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,5 +20,5 @@ public class User {
     private String email;
     private String password;
     private Role role;
-    private Team team;
+    private String teamId;
 }

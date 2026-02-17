@@ -53,6 +53,10 @@ Event timestamp → Instant
 1. When the application becomes read heavy and concurrency issues maybe present.
 2. We can apply pessimistic lock, isolation level = SERIALIZABLE, or optimistic lock.
 
+### Optimizations
+
+1. Removed Team from user to add teamId allowing reduction in join for each auth query.
+
 ```sql
 SELECT id
 FROM project

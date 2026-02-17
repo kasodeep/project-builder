@@ -8,16 +8,11 @@
     <resultMap id="userMap" type="fury.deep.project_builder.entity.user.User">
 
         <!-- User fields -->
-        <id property="id" column="user_id"/>
+        <id property="id" column="id"/>
         <result property="username" column="username"/>
         <result property="email" column="email"/>
         <result property="password" column="password"/>
         <result property="role" column="role"/>
-
-        <!-- Team association -->
-        <association property="team" javaType="fury.deep.project_builder.entity.team.Team">
-            <id property="id" column="team_id"/>
-            <result property="name" column="team_name"/>
-        </association>
+        <result property="teamId" column="team_id"/>
     </resultMap>
 </mapper>

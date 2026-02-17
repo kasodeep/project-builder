@@ -37,7 +37,7 @@ public class ProjectService {
         }
 
         Project project = fromProjectCreateRequest(projectCreateRequest, user);
-        projectMapper.insertProject(project);
+        projectMapper.insertProject(project, user.getTeamId());
     }
 
     /**
@@ -52,7 +52,7 @@ public class ProjectService {
      * The method finds all the projects, queried by the team of the user.
      */
     public List<Project> getAllProjects(User user) {
-        return projectMapper.findAll(user.getTeam().getId());
+        return projectMapper.findAll(user.getTeamId());
     }
 
     /**
@@ -69,7 +69,6 @@ public class ProjectService {
     private Project fromProjectCreateRequest(ProjectCreateRequest projectCreateRequest, User user) {
         return Project.builder()
                 .name(projectCreateRequest.name())
-                .team(user.getTeam())
                 .owner(user.getUsername())
                 .progress(INITIAL_PROJECT_PROGRESS)
                 .start(projectCreateRequest.start())

@@ -5,17 +5,18 @@
 
 <mapper namespace="fury.deep.project_builder.repository.project.ProjectMapper">
 
-    <insert id="insertProject" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insertProject" useGeneratedKeys="true" keyProperty="project.id">
         INSERT INTO project
             (name, team_id, owner, progress, start_date, end_date, updated_by)
-        VALUES (#{name},
-                #{team.id},
-                #{owner},
-                #{progress},
-                #{start},
-                #{end},
-                #{updatedBy})
+        VALUES (#{project.name},
+                #{teamId},
+                #{project.owner},
+                #{project.progress},
+                #{project.start},
+                #{project.end},
+                #{project.updatedBy})
     </insert>
+
 
     <update id="updateProjectMetadata">
         UPDATE project

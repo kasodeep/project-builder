@@ -107,10 +107,12 @@ public class TaskService {
             throw new ResourceNotFoundException(ErrorMessages.TASK_NOT_FOUND.formatted(taskId));
         }
 
+        // TODO: Updates should be allowed by assignee.
         projectService.validateAccess(task.getProjectId(), user);
         return task;
     }
 
+    // TODO: Add filters and proper date or status. Or maybe we can change to project wise fetch.
     public List<Task> tasksForUser(User user) {
         return taskMapper.findTasksByUserId(user.getId());
     }

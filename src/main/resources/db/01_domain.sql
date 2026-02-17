@@ -1,32 +1,46 @@
+-- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- =========================
+-- TEAM
+-- =========================
 CREATE TABLE team
 (
     id   VARCHAR(255) PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255),
+    name VARCHAR(255) NOT NULL,
 
     CONSTRAINT unique_team UNIQUE (name)
 );
 
+-- =========================
+-- FEATURE
+-- =========================
 CREATE TABLE feature
 (
     id   VARCHAR(255) PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL
 );
 
+-- =========================
+-- USER
+-- =========================
 CREATE TABLE "user"
 (
     id       VARCHAR(255) PRIMARY KEY DEFAULT uuid_generate_v4(),
-    username VARCHAR(255) UNIQUE,
+    username VARCHAR(255) NOT NULL,
     email    VARCHAR(255),
     password VARCHAR(255),
     role     VARCHAR(255),
     team_id  VARCHAR(255),
 
     CONSTRAINT unique_username UNIQUE (username),
-    CONSTRAINT fk_user_team FOREIGN KEY (team_id) REFERENCES team (id)
+    CONSTRAINT fk_user_team
+        FOREIGN KEY (team_id) REFERENCES team (id)
 );
 
+-- =========================
+-- PROJECT
+-- =========================
 CREATE TABLE project
 (
     id         VARCHAR(255) PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -41,16 +55,17 @@ CREATE TABLE project
     updated_by VARCHAR(255),
     updated_at TIMESTAMPTZ  NOT NULL    DEFAULT now(),
 
-    -- OWNER could have been a fk.
-
     CONSTRAINT fk_project_team
         FOREIGN KEY (team_id) REFERENCES team (id)
-            ON DELETE RESTRICT, -- VERY IMPORTANT
+            ON DELETE RESTRICT,
 
     CONSTRAINT chk_project_dates
         CHECK (end_date >= start_date)
 );
 
+-- =========================
+-- PROJECT MANAGER
+-- =========================
 CREATE TABLE project_manager
 (
     project_id VARCHAR(255) NOT NULL,
@@ -67,21 +82,27 @@ CREATE TABLE project_manager
             ON DELETE CASCADE
 );
 
+-- =========================
+-- TASK
+-- =========================
 CREATE TABLE task
 (
-    id         VARCHAR(255) PRIMARY KEY DEFAULT uuid_generate_v4(),
-    project_id VARCHAR(255) NOT NULL,
-    feature_id VARCHAR(255),
+    id           VARCHAR(255) PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project_id   VARCHAR(255) NOT NULL,
+    feature_id   VARCHAR(255),
 
-    name       VARCHAR(255) NOT NULL,
-    priority   INTEGER,
-    status     VARCHAR(50)  NOT NULL,
+    name         VARCHAR(255) NOT NULL,
+    priority     INTEGER,
+    status       VARCHAR(50)  NOT NULL,
 
-    start_date DATE,
-    end_date   DATE,
+    start_date   DATE,
+    end_date     DATE,
 
-    updated_by VARCHAR(255),
-    updated_at TIMESTAMPTZ  NOT NULL    DEFAULT now(),
+    started_at   TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+
+    updated_by   VARCHAR(255),
+    updated_at   TIMESTAMPTZ  NOT NULL    DEFAULT now(),
 
     CONSTRAINT fk_task_project
         FOREIGN KEY (project_id) REFERENCES project (id)
@@ -98,6 +119,9 @@ CREATE TABLE task
             )
 );
 
+-- =========================
+-- TASK ASSIGNEE
+-- =========================
 CREATE TABLE task_assignee
 (
     task_id VARCHAR(255) NOT NULL,
@@ -114,6 +138,9 @@ CREATE TABLE task_assignee
             ON DELETE CASCADE
 );
 
+-- =========================
+-- TASK DEPENDENCY
+-- =========================
 CREATE TABLE task_dependency
 (
     task_id            VARCHAR(255) NOT NULL,
