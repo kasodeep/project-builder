@@ -16,6 +16,7 @@
         WHERE id = #{id}
     </select>
 
+    <!--  When we want boolean outcomes, we can use the COUNT(*) with CASE  -->
     <select id="existsById" resultType="boolean">
         SELECT CASE WHEN COUNT(*) > 0 THEN TRUE ELSE FALSE END
         FROM team

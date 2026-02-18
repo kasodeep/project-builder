@@ -17,7 +17,7 @@
                 #{project.updatedBy})
     </insert>
 
-
+    <!--  Understood functions calls, set-if-test.  -->
     <update id="updateProjectMetadata">
         UPDATE project
         <set>
@@ -36,6 +36,7 @@
         WHERE id = #{request.projectId}
     </update>
 
+    <!--  Complex JOINS, with custom handler.  -->
     <select id="findAll" parameterType="string" resultMap="ProjectResultMap.projectMap">
         SELECT p.id   AS project_id,
                p.name AS project_name,
@@ -55,7 +56,9 @@
                )      AS managers
 
         FROM project p
+                 -- INNER JOIN, it must have a team.
                  JOIN team t ON t.id = p.team_id
+            -- Keep the projects without managers as well.
                  LEFT JOIN project_manager pm ON pm.project_id = p.id
                  LEFT JOIN "user" u ON u.id = pm.user_id
 
@@ -63,8 +66,7 @@
 
         GROUP BY p.id,
                  t.id,
-                 p.updated_at -- Cause throwing error
-
+                 p.updated_at
         ORDER BY p.updated_at DESC
     </select>
 

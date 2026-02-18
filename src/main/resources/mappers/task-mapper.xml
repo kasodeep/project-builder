@@ -43,9 +43,7 @@
         WHERE id = #{taskId}
     </delete>
 
-    <select id="findTaskById"
-            resultMap="TaskResultMap.taskFullMap">
-
+    <select id="findTaskById" resultMap="TaskResultMap.taskFullMap">
         SELECT t.id       AS task_id,
                t.project_id,
                t.name     AS task_name,

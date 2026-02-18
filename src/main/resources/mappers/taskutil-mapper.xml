@@ -11,6 +11,7 @@
         WHERE task_id = #{taskId}
     </delete>
 
+    <!--  Inplace of VALUES, we SELECT to return the already existing data.  -->
     <insert id="insertAssignees">
         INSERT INTO task_assignee (task_id, user_id)
         SELECT
@@ -82,7 +83,8 @@
             SELECT td.depends_on_task_id
             FROM task_dependency td
                      JOIN dependency_path dp
-                          ON td.task_id = dp.depends_on_task_id)
+                          ON td.task_id = dp.depends_on_task_id
+            )
 
         -- Step 3: If base task is reachable, cycle exists
         SELECT EXISTS (SELECT 1

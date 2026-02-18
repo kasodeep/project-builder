@@ -3,7 +3,6 @@
 -- =========================
 
 -- User
-
 CREATE UNIQUE INDEX idx_user_username
     ON "user" (username);
 
@@ -13,7 +12,7 @@ CREATE INDEX idx_project_team_updated
     ON project (team_id, updated_at DESC);
 
 -- Project Manager
--- Since PK uses project_id first
+-- Since PK uses project_id first, we need only one more index for user_id.
 CREATE INDEX idx_pm_user_id
     ON project_manager (user_id);
 

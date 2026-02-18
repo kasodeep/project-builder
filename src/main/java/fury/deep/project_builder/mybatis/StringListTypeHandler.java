@@ -9,6 +9,7 @@ import java.util.List;
 
 public class StringListTypeHandler extends BaseTypeHandler<List<String>> {
 
+    // Used for insert/update.
     @Override
     public void setNonNullParameter(PreparedStatement ps, int i, List<String> parameter, JdbcType jdbcType
     ) throws SQLException {

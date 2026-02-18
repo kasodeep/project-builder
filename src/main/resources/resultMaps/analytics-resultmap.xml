@@ -30,7 +30,7 @@
             <result property="blockedDependencyCount" column="blockedDependencyCount"/>
             <result property="criticalPathLength" column="criticalPathLength"/>
             <result property="dependencyDensity" column="dependencyDensity"/>
-            <result property="dependencyRiskScore" column="dependencyRiskScore"/>
+            <result property="riskScore" column="dependencyRiskScore"/>
         </association>
 
         <association property="team"
