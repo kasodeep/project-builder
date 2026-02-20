@@ -1,5 +1,6 @@
 package fury.deep.project_builder.service.task;
 
+import fury.deep.project_builder.constants.AggregateType;
 import fury.deep.project_builder.constants.ErrorMessages;
 import fury.deep.project_builder.dto.task.CreateTaskRequest;
 import fury.deep.project_builder.dto.task.UpdateTaskRequest;
@@ -11,8 +12,8 @@ import fury.deep.project_builder.events.*;
 import fury.deep.project_builder.exception.ResourceNotFoundException;
 import fury.deep.project_builder.repository.task.TaskMapper;
 import fury.deep.project_builder.service.FeatureService;
+import fury.deep.project_builder.service.outbox.OutboxService;
 import fury.deep.project_builder.service.project.ProjectService;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,13 +35,13 @@ public class TaskService {
     private final TaskMapper taskMapper;
     private final ProjectService projectService;
     private final FeatureService featureService;
-    private final ApplicationEventPublisher publisher;
+    private final OutboxService outboxService;
 
-    public TaskService(TaskMapper taskMapper, ProjectService projectService, FeatureService featureService, ApplicationEventPublisher publisher) {
+    public TaskService(TaskMapper taskMapper, ProjectService projectService, FeatureService featureService, OutboxService outboxService) {
         this.taskMapper = taskMapper;
         this.projectService = projectService;
         this.featureService = featureService;
-        this.publisher = publisher;
+        this.outboxService = outboxService;
     }
 
     /**
@@ -56,7 +57,9 @@ public class TaskService {
         applyInitialLifecycle(task);
         taskMapper.insertTask(task);
 
-        publisher.publishEvent(
+        outboxService.save(
+                AggregateType.TASK,
+                task.getId(),
                 new TaskCreatedEvent(
                         task.getId(),
                         task.getProjectId(),
@@ -66,6 +69,8 @@ public class TaskService {
     }
 
     /**
+     * TODO: Apply concurrency solve. Check really updating.
+     * TODO: Updates should be allowed by assignee.
      * The method updates the tasks, applies the status transition.
      * It fires the events based on the condition, of status change or static.
      */
@@ -98,7 +103,11 @@ public class TaskService {
         Task existing = findById(taskId, user);
         taskMapper.deleteTask(taskId);
 
-        publisher.publishEvent(new TaskDeletedEvent(existing.getId(), existing.getProjectId()));
+        outboxService.save(
+                AggregateType.TASK,
+                existing.getId(),
+                new TaskDeletedEvent(existing.getId(), existing.getProjectId())
+        );
     }
 
     public Task findById(String taskId, User user) {
@@ -107,7 +116,6 @@ public class TaskService {
             throw new ResourceNotFoundException(ErrorMessages.TASK_NOT_FOUND.formatted(taskId));
         }
 
-        // TODO: Updates should be allowed by assignee.
         projectService.validateAccess(task.getProjectId(), user);
         return task;
     }
@@ -191,17 +199,20 @@ public class TaskService {
         }
     }
 
-
     /**
      * Fires status changed event on changes in status, otherwise, fires the task update event.
      */
     private void publishStatusAwareEvent(Task task, Status oldStatus, Status newStatus) {
         if (oldStatus != newStatus) {
-            publisher.publishEvent(
+            outboxService.save(
+                    AggregateType.TASK,
+                    task.getId(),
                     new TaskStatusChangedEvent(task.getId(), task.getProjectId(), oldStatus, newStatus)
             );
         } else {
-            publisher.publishEvent(
+            outboxService.save(
+                    AggregateType.TASK,
+                    task.getId(),
                     new TaskUpdatedEvent(task.getId(), task.getProjectId(), newStatus)
             );
         }

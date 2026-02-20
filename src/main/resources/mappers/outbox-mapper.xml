@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="fury.deep.project_builder.repository.outbox.OutboxMapper">
+
+    <insert id="insertEvent">
+        INSERT INTO outbox_event
+        (id, aggregate_type, aggregate_id, project_id, event_type, payload,
+         status, retry_count, next_retry_at, error_message, created_at, version)
+        VALUES (#{event.id},
+                #{event.aggregateType},
+                #{event.aggregateId},
+                #{event.projectId},
+                #{event.eventType},
+                CAST(#{event.payload} AS jsonb),
+                #{event.status},
+                #{event.retryCount},
+                #{event.nextRetryAt},
+                #{event.errorMessage},
+                #{event.createdAt},
+                #{event.version})
+    </insert>
+
+    <!--
+        SKIP LOCKED means multiple worker instances or threads will each claim
+        a disjoint subset of rows with zero contention and no duplicate
+        processing. version + 1 is still bumped so the optimistic-lock
+        history remains auditable.
+    -->
+    <select id="pollAndLock" resultType="fury.deep.project_builder.entity.outbox.OutboxEvent">
+    <![CDATA[
+        UPDATE outbox_event
+        SET status  = 'PROCESSING',
+            version = version + 1
+        WHERE id IN (SELECT id
+                     FROM outbox_event
+                     WHERE status IN ('PENDING', 'FAILED')
+                       AND (next_retry_at IS NULL OR next_retry_at <= #{now})
+                     ORDER BY created_at
+                     LIMIT #{limit} FOR UPDATE SKIP LOCKED)
+        RETURNING
+            id,
+            aggregate_type AS aggregateType,
+            aggregate_id AS aggregateId,
+            project_id AS projectId,
+            event_type AS eventType,
+            payload::text AS payload,
+            status,
+            retry_count AS retryCount,
+            next_retry_at AS nextRetryAt,
+            error_message AS errorMessage,
+            created_at AS createdAt,
+            processed_at AS processedAt,
+            version
+        ]]>
+    </select>
+
+    <!--
+        Marks all succeeded events in a single UPDATE using ANY(?).
+        One round-trip for the entire batch regardless of batch size,
+        replacing N individual markSuccess calls.
+    -->
+    <update id="bulkMarkSuccess">
+        UPDATE outbox_event
+        SET status = 'SUCCESS',
+        processed_at = #{processedAt}
+        WHERE id IN (
+        <foreach collection="ids" item="id" separator="," open="" close="">
+            #{id}
+        </foreach>
+        )
+    </update>
+
+    <!--
+        retry_count is incremented DB-side (retry_count + 1) — the worker
+        never trusts the stale in-memory value for the dead-letter decision.
+    -->
+    <update id="incrementRetry">
+        UPDATE outbox_event
+        SET status        = 'FAILED',
+            retry_count   = retry_count + 1,
+            error_message = #{error},
+            next_retry_at = #{nextRetryAt}
+        WHERE id = #{id}
+    </update>
+
+    <!--
+        Distinct DEAD status — not a special-cased error string.
+        Allows simple WHERE status = 'DEAD' queries for ops dashboards.
+    -->
+    <update id="markDead">
+        UPDATE outbox_event
+        SET status        = 'DEAD',
+            error_message = #{error},
+            processed_at  = now()
+        WHERE id = #{id}
+    </update>
+
+</mapper>

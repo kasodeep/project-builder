@@ -1,5 +1,6 @@
 package fury.deep.project_builder.service.task;
 
+import fury.deep.project_builder.constants.AggregateType;
 import fury.deep.project_builder.dto.task.util.AddAssigneeRequest;
 import fury.deep.project_builder.dto.task.util.AddDependenciesRequest;
 import fury.deep.project_builder.entity.task.Task;
@@ -8,7 +9,7 @@ import fury.deep.project_builder.events.TaskAssigneesReplacedEvent;
 import fury.deep.project_builder.events.TaskDependenciesReplacedEvent;
 import fury.deep.project_builder.repository.UserMapper;
 import fury.deep.project_builder.repository.task.TaskUtilMapper;
-import org.springframework.context.ApplicationEventPublisher;
+import fury.deep.project_builder.service.outbox.OutboxService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,13 +24,13 @@ public class TaskUtilService {
     private final TaskUtilMapper taskUtilMapper;
     private final TaskService taskService;
     private final UserMapper userMapper;
-    private final ApplicationEventPublisher publisher;
+    private final OutboxService outboxService;
 
-    public TaskUtilService(TaskUtilMapper taskUtilMapper, TaskService taskService, UserMapper userMapper, ApplicationEventPublisher publisher) {
+    public TaskUtilService(TaskUtilMapper taskUtilMapper, TaskService taskService, UserMapper userMapper, OutboxService outboxService) {
         this.taskUtilMapper = taskUtilMapper;
         this.taskService = taskService;
         this.userMapper = userMapper;
-        this.publisher = publisher;
+        this.outboxService = outboxService;
     }
 
     /**
@@ -59,7 +60,9 @@ public class TaskUtilService {
         }
 
         taskUtilMapper.replaceDependencies(task.getId(), request.dependencies(), task.getProjectId());
-        publisher.publishEvent(
+        outboxService.save(
+                AggregateType.TASK,
+                task.getId(),
                 new TaskDependenciesReplacedEvent(
                         task.getId(),
                         task.getProjectId()
@@ -83,7 +86,9 @@ public class TaskUtilService {
         }
 
         taskUtilMapper.replaceAssignees(task.getId(), request.assignees(), user.getTeamId());
-        publisher.publishEvent(
+        outboxService.save(
+                AggregateType.TASK,
+                task.getId(),
                 new TaskAssigneesReplacedEvent(
                         task.getId(),
                         task.getProjectId()

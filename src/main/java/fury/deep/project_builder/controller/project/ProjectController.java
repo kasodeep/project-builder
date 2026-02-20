@@ -22,6 +22,7 @@ public class ProjectController {
         this.projectService = projectService;
     }
 
+    // TODO: Query or filtering can be added.
     @GetMapping
     public ResponseEntity<List<Project>> getAllProjects() {
         return ResponseEntity.ok(projectService.getAllProjects(AuthContextHolder.getUser()));

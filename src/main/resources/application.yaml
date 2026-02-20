@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: project-builder
+
+  # ── Active profile selector ───────────────────────────────────────────────────
+  # Override at startup:
+  #   Dev locally:  ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+  #   Production:   java -jar app.jar --spring.profiles.active=prod
+  #   CI/CD env var: SPRING_PROFILES_ACTIVE=prod
+  profiles:
+    active: dev   # default fallback — safe for local development
+
+  # ── Shared datasource (credentials overridden per profile) ───────────────────
+  datasource:
+    url: jdbc:postgresql://ep-shy-flower-a14e45hd-pooler.ap-southeast-1.aws.neon.tech/project_builder?sslmode=require&channel_binding=require
+    username: neondb_owner
+    driver-class-name: org.postgresql.Driver
+
+  # ── Shared cache ─────────────────────────────────────────────────────────────
+  cache:
+    type: simple
+    cache-names:
+      - project-dashboard
+
+  # ── Shared async executor ────────────────────────────────────────────────────
+  task:
+    execution:
+      pool:
+        core-size: 4
+        max-size: 20
+        queue-capacity: 200
+        keep-alive: 60s
+      thread-name-prefix: analytics-
+    scheduling:
+      pool:
+        size: 2
+      thread-name-prefix: scheduler-
+
+# ── Shared outbox config ──────────────────────────────────────────────────────
+outbox:
+  worker:
+    delay-ms: 2000
+    batch-size: 50
+    max-retry: 5
+    max-idle-skip: 16
+
+# ── Shared MyBatis ────────────────────────────────────────────────────────────
+mybatis:
+  mapper-locations:
+    - classpath:mappers/*.xml
+    - classpath:resultMaps/*.xml
+  type-handlers-package: fury.deep.project_builder.mybatis
+  type-aliases-package: fury.deep.pbuilder.entities

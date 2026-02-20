@@ -1,10 +1,5 @@
 ## Learnings
 
-###
-
-- Dashboard + Analytics.
-- Task status updates.
-
 ### Exception Handling
 
 - Using a standard error response to what the framework provides for consistency.
@@ -53,6 +48,31 @@ Event timestamp → Instant
 1. When the application becomes read heavy and concurrency issues maybe present.
 2. We can apply pessimistic lock, isolation level = SERIALIZABLE, or optimistic lock.
 
+### Events
+
+1. To avoid running events in the same transaction as the db logic.
+2. We can use the @TransactionalEventListener for events with phase = afterCommit.
+3. afterCommit is okay for:
+   - cache invalidation
+   - email sending
+   - logging
+
+4. Your analytics system is derived state.
+5. Derived state must be:
+✔ rebuildable
+✔ replayable
+✔ auditable
+
+### Outbox Pattern
+
+1. Since service logic, needs transaction, events firing under the same call leads to errors, no trace.
+2. We store the events with the payload serialized in the outbox table. Marked PENDING.
+3. Then our worker batches the events together, fires them and handled by the listener.
+4. The pattern allows us to move to a separate db or listener outside our app.
+5. We use JSONB for db storage.
+
+### Async Config
+
 ### Optimizations
 
 1. Removed Team from user to add teamId allowing reduction in join for each auth query.
@@ -61,7 +81,7 @@ Event timestamp → Instant
 SELECT id
 FROM project
 WHERE id = #{projectId}
-    FOR UPDATE
+FOR UPDATE
 ```
 
 ```java
