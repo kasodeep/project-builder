@@ -19,13 +19,13 @@
         u.id
         FROM "user" u
         WHERE u.team_id = #{teamId}
-        AND u.username IN
+        AND u.id IN
         <foreach collection="assignees"
-                 item="username"
+                 item="userId"
                  open="("
                  separator=","
                  close=")">
-            #{username}
+            #{userId}
         </foreach>
     </insert>
 

@@ -39,7 +39,7 @@ spring:
 # ── Shared outbox config ──────────────────────────────────────────────────────
 outbox:
   worker:
-    delay-ms: 2000
+    delay-ms: 10000
     batch-size: 50
     max-retry: 5
     max-idle-skip: 16

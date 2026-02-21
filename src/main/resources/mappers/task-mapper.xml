@@ -44,9 +44,9 @@
     </delete>
 
     <select id="findTaskById" resultMap="TaskResultMap.taskFullMap">
-        SELECT t.id       AS task_id,
+        SELECT t.id   AS task_id,
                t.project_id,
-               t.name     AS task_name,
+               t.name AS task_name,
                t.priority,
                t.status,
                t.start_date,
@@ -55,17 +55,23 @@
                t.updated_at,
                t.started_at,
                t.completed_at,
-
-               f.id       AS feature_id,
-               f.name     AS feature_name,
-
-               ta.user_id AS assignee_id,
-               td.depends_on_task_id
+               f.id   AS feature_id,
+               f.name AS feature_name
         FROM task t
                  LEFT JOIN feature f ON f.id = t.feature_id
-                 LEFT JOIN task_assignee ta ON ta.task_id = t.id
-                 LEFT JOIN task_dependency td ON td.task_id = t.id
         WHERE t.id = #{taskId}
+    </select>
+
+    <select id="findAssigneesByTaskId" resultType="string">
+        SELECT user_id
+        FROM task_assignee
+        WHERE task_id = #{taskId}
+    </select>
+
+    <select id="findDependenciesByTaskId" resultType="string">
+        SELECT depends_on_task_id
+        FROM task_dependency
+        WHERE task_id = #{taskId}
     </select>
 
     <select id="findTasksByUserId" resultMap="TaskResultMap.taskWithAssigneesMap">

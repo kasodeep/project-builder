@@ -33,16 +33,15 @@
                type="fury.deep.project_builder.entity.task.Task"
                extends="taskBaseMap">
 
-        <!--   Preventing adding null assignee. Can return duplicates??   -->
         <collection property="assignees"
                     ofType="java.lang.String"
-                    column="assignee_id"
-                    notNullColumn="assignee_id"/>
+                    select="fury.deep.project_builder.repository.task.TaskMapper.findAssigneesByTaskId"
+                    column="task_id"/>
 
         <collection property="dependencies"
                     ofType="java.lang.String"
-                    column="depends_on_task_id"
-                    notNullColumn="depends_on_task_id"/>
+                    select="fury.deep.project_builder.repository.task.TaskMapper.findDependenciesByTaskId"
+                    column="task_id"/>
     </resultMap>
 
     <resultMap id="taskProjectViewMap"

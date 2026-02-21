@@ -27,17 +27,28 @@
         WHERE username = #{username}
     </select>
 
+    <select id="findByTeamId" parameterType="string" resultMap="UserResultMap.userMap">
+        SELECT id,
+               username,
+               email,
+               password,
+               role,
+               team_id
+        FROM "user"
+        WHERE team_id = #{teamId}
+    </select>
+
     <select id="countUsersInTeam" resultType="int">
         SELECT COUNT(*)
         FROM "user" u
         WHERE u.team_id = #{teamId}
-        AND u.username IN
-        <foreach collection="usernames"
-                 item="username"
+        AND u.id IN
+        <foreach collection="userIds"
+                 item="id"
                  open="("
                  separator=","
                  close=")">
-            #{username}
+            #{id}
         </foreach>
     </select>
 </mapper>

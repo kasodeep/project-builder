@@ -81,7 +81,7 @@ public class TaskUtilService {
         int validCount = userMapper.countUsersInTeam(request.assignees(), user.getTeamId());
         if (validCount != request.assignees().size()) {
             throw new IllegalArgumentException(
-                    "All managers must belong to the same team as the project"
+                    "All assignees must belong to the same team as the task"
             );
         }
 
