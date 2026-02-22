@@ -49,9 +49,9 @@
 
         <id property="id" column="task_id"/>
         <result property="name" column="task_name"/>
+        <result property="status" column="status"/>
 
-        <association property="feature"
-                     resultMap="FeatureResultMap.featureMapAssociation"/>
+<!--        <association property="feature" resultMap="FeatureResultMap.featureMapAssociation"/>-->
 
         <collection property="dependencies"
                     ofType="java.lang.String">
