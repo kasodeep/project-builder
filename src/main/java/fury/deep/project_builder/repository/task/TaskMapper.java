@@ -17,9 +17,17 @@ public interface TaskMapper {
 
     Task findTaskById(@Param("taskId") String taskId);
 
+    List<String> findAssigneesByTaskId(@Param("taskId") String taskId);
+
+    List<String> findDependenciesByTaskId(@Param("taskId") String taskId);
+
     List<Task> findTasksByUserId(@Param("userId") String userId);
 
     List<Task> findTasksByProjectId(@Param("projectId") String projectId);
 
-    int countTasksInProject(List<String> tasks, String projectId);
+    List<Task> findTasksDependingOn(@Param("taskId") String taskId);
+
+    int countTasksInProject(@Param("tasks") List<String> tasks, @Param("projectId") String projectId);
+
+    int countCompletedTasks(@Param("taskIds") List<String> taskIds);
 }

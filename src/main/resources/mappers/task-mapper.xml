@@ -111,6 +111,37 @@
         ORDER BY t.id
     </select>
 
+    <!-- Find tasks that depend on a given task -->
+    <select id="findTasksDependingOn" resultMap="TaskResultMap.taskFullMap">
+        SELECT t.id   AS task_id,
+               t.project_id,
+               t.name AS task_name,
+               t.priority,
+               t.status,
+               t.start_date,
+               t.end_date,
+               t.updated_by,
+               t.updated_at,
+               t.started_at,
+               t.completed_at,
+               f.id   AS feature_id,
+               f.name AS feature_name
+        FROM task t
+                 LEFT JOIN feature f ON f.id = t.feature_id
+                 JOIN task_dependency td ON td.task_id = t.id
+        WHERE td.depends_on_task_id = #{taskId}
+    </select>
+
+    <!-- Count how many of a list of tasks are COMPLETED -->
+    <select id="countCompletedTasks" resultType="int">
+        SELECT COUNT(*) FROM task
+        WHERE status = 'COMPLETED'
+        AND id IN
+        <foreach collection="taskIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
     <select id="countTasksInProject" resultType="int">
         SELECT COUNT(*)
         FROM "task" t

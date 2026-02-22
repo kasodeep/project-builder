@@ -56,4 +56,10 @@ public class TaskController {
         List<Task> tasks = taskService.tasksForUser(AuthContextHolder.getUser());
         return ResponseEntity.ok(tasks);
     }
+
+    @PatchMapping("/{taskId}/complete")
+    public ResponseEntity<Void> completeTask(@PathVariable String taskId) {
+        taskService.completeTask(taskId, AuthContextHolder.getUser());
+        return ResponseEntity.ok().build();
+    }
 }

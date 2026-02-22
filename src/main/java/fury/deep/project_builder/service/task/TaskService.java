@@ -10,6 +10,7 @@ import fury.deep.project_builder.entity.task.Task;
 import fury.deep.project_builder.entity.user.User;
 import fury.deep.project_builder.events.*;
 import fury.deep.project_builder.exception.ResourceNotFoundException;
+import fury.deep.project_builder.exception.UnAuthorizedException;
 import fury.deep.project_builder.repository.task.TaskMapper;
 import fury.deep.project_builder.service.FeatureService;
 import fury.deep.project_builder.service.outbox.OutboxService;
@@ -18,10 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Service related to tasks to provide CRUD operations with validations and status updates.
@@ -85,6 +83,8 @@ public class TaskService {
         validateTransition(oldStatus, newStatus);
         applyLifecycleTransition(existing, oldStatus, newStatus);
 
+        boolean hasChanges = hasChanges(existing, request, feature);
+
         existing.setName(request.name());
         existing.setFeature(feature);
         existing.setPriority(request.priority());
@@ -95,7 +95,19 @@ public class TaskService {
         existing.setUpdatedBy(user.getUsername());
 
         taskMapper.updateTask(existing);
-        publishStatusAwareEvent(existing, oldStatus, newStatus);
+
+        if (hasChanges) {
+            publishStatusAwareEvent(existing, oldStatus, newStatus);
+        }
+    }
+
+    private boolean hasChanges(Task existing, UpdateTaskRequest request, Feature feature) {
+        return !existing.getName().equals(request.name())
+                || !existing.getStatus().equals(request.status())
+                || !existing.getFeature().getId().equals(feature.getId())
+                || !Objects.equals(existing.getPriority(), request.priority())
+                || !Objects.equals(existing.getStart(), request.start())
+                || !Objects.equals(existing.getEnd(), request.end());
     }
 
     @Transactional
@@ -132,6 +144,62 @@ public class TaskService {
 
     public int countTasksInProject(List<String> tasks, String projectId) {
         return taskMapper.countTasksInProject(tasks, projectId);
+    }
+
+    @Transactional
+    public void completeTask(String taskId, User user) {
+        Task task = taskMapper.findTaskById(taskId);
+        if (task == null) {
+            throw new ResourceNotFoundException(ErrorMessages.TASK_NOT_FOUND.formatted(taskId));
+        }
+
+        // Only assignees can complete
+        List<String> assignees = taskMapper.findAssigneesByTaskId(taskId);
+        if (!assignees.contains(user.getId())) {
+            throw new UnAuthorizedException("Only an assignee can mark this task as completed.");
+        }
+
+        // Must be ACTIVE to complete
+        validateTransition(task.getStatus(), Status.COMPLETED);
+
+        task.setStatus(Status.COMPLETED);
+        task.setCompletedAt(Instant.now());
+        task.setUpdatedAt(Instant.now());
+        task.setUpdatedBy(user.getUsername());
+        taskMapper.updateTask(task);
+
+        outboxService.save(
+                AggregateType.TASK,
+                task.getId(),
+                new TaskStatusChangedEvent(task.getId(), task.getProjectId(), Status.ACTIVE, Status.COMPLETED)
+        );
+
+        // Unlock dependents
+        unlockDependents(task);
+    }
+
+    private void unlockDependents(Task completedTask) {
+        List<Task> dependents = taskMapper.findTasksDependingOn(completedTask.getId());
+
+        for (Task dependent : dependents) {
+            if (dependent.getStatus() != Status.LOCKED) continue;
+
+            // Check all of THIS task's dependencies are completed
+            List<String> depIds = taskMapper.findDependenciesByTaskId(dependent.getId());
+            boolean allCompleted = taskMapper.countCompletedTasks(depIds) == depIds.size();
+
+            if (allCompleted) {
+                dependent.setStatus(Status.PENDING);
+                dependent.setUpdatedAt(Instant.now());
+                taskMapper.updateTask(dependent);
+
+                outboxService.save(
+                        AggregateType.TASK,
+                        dependent.getId(),
+                        new TaskStatusChangedEvent(dependent.getId(), dependent.getProjectId(), Status.LOCKED, Status.PENDING)
+                );
+            }
+        }
     }
 
     /**
