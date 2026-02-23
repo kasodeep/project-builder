@@ -10,14 +10,22 @@ import java.util.List;
 @Mapper
 public interface ProjectMapper {
 
-    void insertProject(Project project, String teamId);
+    void insertProject(@Param("project") Project project,
+                       @Param("teamId") String teamId);
 
-    void updateProjectMetadata(ProjectUpdateRequest request, String updatedBy);
+    /**
+     * Updates project fields that are non-null in the request.
+     * Uses optimistic locking via the {@code version} column.
+     *
+     * @return number of rows updated — 0 means version mismatch (concurrent edit)
+     */
+    int updateProjectMetadata(@Param("request") ProjectUpdateRequest request,
+                              @Param("updatedBy") String updatedBy);
 
-    // Since, no explicit @Param, any name can be used in the query with {}.
-    List<Project> findAll(String teamId);
+    List<Project> findAll(@Param("teamId") String teamId);
 
-    boolean isOwnerOrManager(@Param("projectId") String projectId, @Param("username") String username);
+    boolean isOwnerOrManager(@Param("projectId") String projectId,
+                             @Param("username") String username);
 
     void recomputeProjectProgress(String projectId);
 }

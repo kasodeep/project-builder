@@ -4,9 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="ProjectResultMap">
-
     <resultMap id="projectMap" type="fury.deep.project_builder.entity.project.Project">
-
         <id property="id" column="project_id"/>
         <result property="name" column="project_name"/>
         <result property="owner" column="owner"/>
@@ -15,10 +13,9 @@
         <result property="end" column="end_date"/>
         <result property="updatedBy" column="updated_by"/>
         <result property="updatedAt" column="updated_at"/>
+        <result property="version" column="version"/>
 
-        <!-- managers via separate query or JSON array -->
-        <result property="managers"
-                column="managers"
+        <result property="managers" column="managers"
                 typeHandler="fury.deep.project_builder.mybatis.StringListTypeHandler"/>
 
         <association property="team" javaType="fury.deep.project_builder.entity.team.Team">
@@ -27,9 +24,3 @@
         </association>
     </resultMap>
 </mapper>
-
-        <!-- Collection MUST come last (before optional discriminator) -->
-        <!--<collection property="managers"-->
-        <!--            ofType="string"-->
-        <!--            column="id"-->
-        <!--            select="fury.deep.project_builder.repositories.ProjectMapper.findManagers"/>-->

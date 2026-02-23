@@ -17,7 +17,11 @@
                 #{project.updatedBy})
     </insert>
 
-    <!--  Understood functions calls, set-if-test.  -->
+    <!-- =========================================================
+         UPDATE  —  Optimistic Locking
+         Returns the number of rows affected.
+         0 rows  →  version mismatch  →  concurrent edit detected.
+         ========================================================= -->
     <update id="updateProjectMetadata">
         UPDATE project
         <set>
@@ -31,13 +35,14 @@
                 end_date = #{request.end},
             </if>
             updated_by = #{updatedBy},
-            updated_at = now()
+            updated_at = now(),
+            version = version + 1
         </set>
         WHERE id = #{request.projectId}
+        AND version = #{request.version}
     </update>
 
-    <!--  Complex JOINS, with custom handler.  -->
-    <select id="findAll" parameterType="string" resultMap="ProjectResultMap.projectMap">
+    <select id="findAll" resultMap="ProjectResultMap.projectMap">
         SELECT p.id   AS project_id,
                p.name AS project_name,
                p.owner,
@@ -46,6 +51,7 @@
                p.end_date,
                p.updated_by,
                p.updated_at,
+               p.version,
 
                t.id   AS team_id,
                t.name AS team_name,
@@ -56,17 +62,24 @@
                )      AS managers
 
         FROM project p
-                 -- INNER JOIN, it must have a team.
                  JOIN team t ON t.id = p.team_id
-            -- Keep the projects without managers as well.
                  LEFT JOIN project_manager pm ON pm.project_id = p.id
                  LEFT JOIN "user" u ON u.id = pm.user_id
 
         WHERE p.team_id = #{teamId}
 
         GROUP BY p.id,
+                 p.name,
+                 p.owner,
+                 p.progress,
+                 p.start_date,
+                 p.end_date,
+                 p.updated_by,
+                 p.updated_at,
+                 p.version,
                  t.id,
-                 p.updated_at
+                 t.name
+
         ORDER BY p.updated_at DESC
     </select>
 
@@ -87,13 +100,16 @@
         SET progress   = (SELECT CASE
                                      WHEN COUNT(*) = 0 THEN 0
                                      ELSE FLOOR(
-                                             100.0 * SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END)
+                                             100.0
+                                                 * SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END)
                                                  / COUNT(*)
                                           )
                                      END
                           FROM task t
                           WHERE t.project_id = p.id),
-            updated_at = now()
+            updated_at = now(),
+            version    = version + 1
         WHERE p.id = #{projectId}
     </update>
+
 </mapper>

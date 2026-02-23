@@ -30,4 +30,11 @@ public class Project {
     private LocalDate end;
     private String updatedBy;
     private Instant updatedAt;
+
+    /**
+     * Optimistic locking version.
+     * Incremented by the DB on every UPDATE.
+     * Must be supplied by the client on every PATCH request.
+     */
+    private Long version;
 }
