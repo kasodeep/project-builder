@@ -6,11 +6,13 @@ import fury.deep.project_builder.entity.task.Task;
 import fury.deep.project_builder.security.AuthContextHolder;
 import fury.deep.project_builder.service.task.TaskService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/task")
 public class TaskController {
@@ -21,19 +23,26 @@ public class TaskController {
         this.taskService = taskService;
     }
 
-    @PostMapping("/create")
+    @PostMapping
     public ResponseEntity<Void> createTask(@Valid @RequestBody CreateTaskRequest request) {
         taskService.createTask(request, AuthContextHolder.getUser());
         return ResponseEntity.ok().build();
     }
 
-    @PutMapping("/update")
+    /**
+     * PUT /api/v1/task
+     * Request body must include {@code version} for optimistic locking.
+     * Returns 409 Conflict if the task was modified concurrently.
+     */
+    @PutMapping
     public ResponseEntity<Void> updateTask(@Valid @RequestBody UpdateTaskRequest request) {
+        log.debug("PUT /task/update taskId={} user={}",
+                request.id(), AuthContextHolder.getUser().getUsername());
         taskService.updateTask(request, AuthContextHolder.getUser());
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/delete/{taskId}")
+    @DeleteMapping("/{taskId}")
     public ResponseEntity<Void> deleteTask(@PathVariable String taskId) {
         taskService.deleteTask(taskId, AuthContextHolder.getUser());
         return ResponseEntity.ok().build();

@@ -1,5 +1,6 @@
 package fury.deep.project_builder.service.project;
 
+import fury.deep.project_builder.config.CacheConfig;
 import fury.deep.project_builder.constants.ErrorMessages;
 import fury.deep.project_builder.dto.project.ProjectCreateRequest;
 import fury.deep.project_builder.dto.project.ProjectUpdateRequest;
@@ -14,6 +15,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -55,6 +58,7 @@ public class ProjectService {
     /**
      * The project can be created by MANAGER, and the team will be the one the user belongs to.
      */
+    @CacheEvict(value = CacheConfig.PROJECTS_BY_TEAM, key = "#user.teamId")
     @Observed(name = "project.create", contextualName = "createProject")
     public void createProject(ProjectCreateRequest projectCreateRequest, User user) {
         if (user.getRole() != Role.MANAGER) {
@@ -77,6 +81,7 @@ public class ProjectService {
      * @throws OptimisticLockException when {@code request.version()} doesn't match the DB row,
      *                                 meaning another request modified the project concurrently.
      */
+    @CacheEvict(value = CacheConfig.PROJECTS_BY_TEAM, key = "#user.teamId")
     @Observed(name = "project.update", contextualName = "updateProject")
     public void updateProject(ProjectUpdateRequest request, User user) {
         validateAccess(request.projectId(), user);
@@ -95,9 +100,10 @@ public class ProjectService {
     }
 
     /**
-     * Returns a paginated, filtered list of projects for the user's team.
+     * Returns a list of projects for the user's team.
      *
      */
+    @Cacheable(value = CacheConfig.PROJECTS_BY_TEAM, key = "#user.teamId")
     @Observed(name = "project.findAll", contextualName = "getAllProjects")
     public List<Project> getAllProjects(User user) {
         return projectFetchTimer.record(() -> {

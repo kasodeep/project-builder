@@ -30,7 +30,8 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             "/api/v1/feature",
             "/v3/api-docs",
             "/swagger-ui",
-            "/swagger-ui.html"
+            "/swagger-ui.html",
+            "/actuator"
     };
 
     private final UserMapper userMapper;

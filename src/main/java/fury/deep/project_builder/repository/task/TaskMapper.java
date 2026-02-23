@@ -11,7 +11,7 @@ public interface TaskMapper {
 
     void insertTask(@Param("task") Task task);
 
-    void updateTask(@Param("task") Task task);
+    int updateTask(@Param("task") Task task);
 
     void deleteTask(@Param("taskId") String taskId);
 

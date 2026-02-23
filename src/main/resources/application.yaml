@@ -2,27 +2,23 @@ spring:
   application:
     name: project-builder
 
-  # ── Active profile selector ───────────────────────────────────────────────────
-  # Override at startup:
-  #   Dev locally:  ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
-  #   Production:   java -jar app.jar --spring.profiles.active=prod
-  #   CI/CD env var: SPRING_PROFILES_ACTIVE=prod
   profiles:
-    active: dev   # default fallback — safe for local development
+    active: dev   # overridden by SPRING_PROFILES_ACTIVE env var in Railway
 
-  # ── Shared datasource (credentials overridden per profile) ───────────────────
   datasource:
-    url: jdbc:postgresql://ep-shy-flower-a14e45hd-pooler.ap-southeast-1.aws.neon.tech/project_builder?sslmode=require&channel_binding=require
-    username: neondb_owner
+    url: ${DB_URL}
+    username: ${DB_USERNAME:neondb_owner}
     driver-class-name: org.postgresql.Driver
 
-  # ── Shared cache ─────────────────────────────────────────────────────────────
+  # ── Cache — type overridden per profile ──────────────────────────────────────
   cache:
-    type: simple
     cache-names:
-      - project-dashboard
+      - projects-by-team
+      - task-by-id
+      - tasks-by-project
+      - tasks-for-user
 
-  # ── Shared async executor ────────────────────────────────────────────────────
+  # ── Async executor ────────────────────────────────────────────────────────────
   task:
     execution:
       pool:
@@ -36,7 +32,15 @@ spring:
         size: 2
       thread-name-prefix: scheduler-
 
-# ── Shared outbox config ──────────────────────────────────────────────────────
+# ── MyBatis ───────────────────────────────────────────────────────────────────
+mybatis:
+  mapper-locations:
+    - classpath:mappers/*.xml
+    - classpath:resultMaps/*.xml
+  type-handlers-package: fury.deep.project_builder.mybatis
+  type-aliases-package: fury.deep.project_builder.entity
+
+# ── Outbox ────────────────────────────────────────────────────────────────────
 outbox:
   worker:
     delay-ms: 10000
@@ -44,10 +48,22 @@ outbox:
     max-retry: 5
     max-idle-skip: 16
 
-# ── Shared MyBatis ────────────────────────────────────────────────────────────
-mybatis:
-  mapper-locations:
-    - classpath:mappers/*.xml
-    - classpath:resultMaps/*.xml
-  type-handlers-package: fury.deep.project_builder.mybatis
-  type-aliases-package: fury.deep.pbuilder.entities
+# ── Actuator (shared baseline — profiles extend this) ─────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics, loggers
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    enable:
+      hikaricp: true
+      jvm: true
+      executor: true
+  tracing:
+    sampling:
+      probability: 1.0   # overridden per profile

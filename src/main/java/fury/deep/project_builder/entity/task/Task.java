@@ -21,16 +21,24 @@ import java.util.List;
 public class Task {
     private String id;
     private String projectId;
-    private List<String> assignees;
+
     private String name;
     private Feature feature;
+
+    private List<String> assignees;
     private List<String> dependencies;
+
     private Integer priority;
     private Status status;
+
     private LocalDate start;
     private LocalDate end;
+
     private String updatedBy;
     private Instant updatedAt;
+
     private Instant startedAt;
     private Instant completedAt;
+
+    private Long version;
 }

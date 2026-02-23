@@ -1,0 +1,58 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    # Railway injects DATABASE_URL automatically for Postgres add-on.
+    # Neon also works — set DB_URL, DB_USERNAME, DB_PASSWORD in Railway variables.
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 3
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      pool-name: ProjectBuilderPool-Prod
+      keepalive-time: 60000
+      connection-test-query: SELECT 1
+  cache:
+    type: simple
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+    # No StdOutImpl in prod — reduces noise; SQL logged at DEBUG if needed
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+# ── Prod logging — structured JSON consumed by ELK ───────────────────────────
+logging:
+  level:
+    root: WARN
+    fury.deep.project_builder: INFO
+    com.zaxxer.hikari: WARN
+  config: classpath:logback-prod.xml
+
+# ── Actuator — restricted surface in prod ─────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus, metrics, loggers
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    tags:
+      env: prod
+  tracing:
+    # 10% sampling — tune to traffic volume; increase if debugging
+    sampling:
+      probability: 0.1
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+        step: 15s

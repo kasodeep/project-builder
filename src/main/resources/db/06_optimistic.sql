@@ -26,3 +26,32 @@ CREATE TRIGGER trg_project_version
     ON project
     FOR EACH ROW
 EXECUTE FUNCTION fn_increment_project_version();
+
+-- ============================================================
+-- Migration: add optimistic locking version column to task
+-- ============================================================
+
+ALTER TABLE task
+    ADD COLUMN version BIGINT NOT NULL DEFAULT 0;
+
+-- ============================================================
+-- Trigger: auto-increment version on every UPDATE.
+-- The application never sets version manually — it only checks it
+-- via WHERE version = #{task.version} and inspects rows affected.
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION fn_increment_task_version()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    NEW.version    = OLD.version + 1;
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_task_version
+    BEFORE UPDATE
+    ON task
+    FOR EACH ROW
+EXECUTE FUNCTION fn_increment_task_version();

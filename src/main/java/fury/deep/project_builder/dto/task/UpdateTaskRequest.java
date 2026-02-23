@@ -23,6 +23,7 @@ public record UpdateTaskRequest(
         Integer priority,
         Status status,
         @NotNull LocalDate start,
-        @NotNull LocalDate end
+        @NotNull LocalDate end,
+        @NotNull Long version
 ) {
 }

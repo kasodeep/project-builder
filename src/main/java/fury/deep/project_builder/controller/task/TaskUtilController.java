@@ -18,13 +18,13 @@ public class TaskUtilController {
         this.taskUtilService = taskUtilService;
     }
 
-    @PutMapping("/add-assignees")
+    @PutMapping("/assignees")
     public ResponseEntity<Void> addAssignees(@Valid @RequestBody AddAssigneeRequest request) {
         taskUtilService.addAssignees(request, AuthContextHolder.getUser());
         return ResponseEntity.ok().build();
     }
 
-    @PutMapping("/add-dependencies")
+    @PutMapping("/dependencies")
     public ResponseEntity<Void> addDependencies(@Valid @RequestBody AddDependenciesRequest request) {
         taskUtilService.addDependencies(request, AuthContextHolder.getUser());
         return ResponseEntity.ok().build();

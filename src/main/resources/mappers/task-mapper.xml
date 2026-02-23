@@ -7,8 +7,9 @@
 
     <insert id="insertTask" useGeneratedKeys="true" keyProperty="task.id">
         INSERT INTO task
-        (name, project_id, feature_id, priority, status, start_date, end_date, started_at, completed_at, updated_by,
-         updated_at)
+        (name, project_id, feature_id, priority, status,
+         start_date, end_date, started_at, completed_at,
+         updated_by, updated_at)
         VALUES (#{task.name},
                 #{task.projectId},
                 #{task.feature.id},
@@ -35,6 +36,7 @@
             updated_by   = #{task.updatedBy},
             updated_at   = #{task.updatedAt}
         WHERE id = #{task.id}
+          AND version = #{task.version}
     </update>
 
     <delete id="deleteTask">
@@ -43,6 +45,9 @@
         WHERE id = #{taskId}
     </delete>
 
+    <!-- =========================================================
+         FIND BY ID — full view with assignees + dependencies via N+1 select
+         ========================================================= -->
     <select id="findTaskById" resultMap="TaskResultMap.taskFullMap">
         SELECT t.id   AS task_id,
                t.project_id,
@@ -55,6 +60,7 @@
                t.updated_at,
                t.started_at,
                t.completed_at,
+               t.version,
                f.id   AS feature_id,
                f.name AS feature_name
         FROM task t
@@ -62,6 +68,9 @@
         WHERE t.id = #{taskId}
     </select>
 
+    <!-- =========================================================
+         ASSIGNEES + DEPENDENCIES (used by N+1 selects in resultMap)
+         ========================================================= -->
     <select id="findAssigneesByTaskId" resultType="string">
         SELECT user_id
         FROM task_assignee
@@ -86,10 +95,9 @@
                t.updated_at,
                t.started_at,
                t.completed_at,
-
+               t.version,
                f.id   AS feature_id,
                f.name AS feature_name,
-
                ta.user_id
         FROM task t
                  JOIN task_assignee ta ON ta.task_id = t.id
@@ -100,7 +108,6 @@
     <select id="findTasksByProjectId"
             resultMap="TaskResultMap.taskProjectViewMap"
             resultOrdered="true">
-
         SELECT t.id     AS task_id,
                t.name   AS task_name,
                t.status AS status,
@@ -111,7 +118,6 @@
         ORDER BY t.id
     </select>
 
-    <!-- Find tasks that depend on a given task -->
     <select id="findTasksDependingOn" resultMap="TaskResultMap.taskFullMap">
         SELECT t.id   AS task_id,
                t.project_id,
@@ -124,6 +130,7 @@
                t.updated_at,
                t.started_at,
                t.completed_at,
+               t.version,
                f.id   AS feature_id,
                f.name AS feature_name
         FROM task t
@@ -132,7 +139,6 @@
         WHERE td.depends_on_task_id = #{taskId}
     </select>
 
-    <!-- Count how many of a list of tasks are COMPLETED -->
     <select id="countCompletedTasks" resultType="int">
         SELECT COUNT(*) FROM task
         WHERE status = 'COMPLETED'
@@ -144,14 +150,10 @@
 
     <select id="countTasksInProject" resultType="int">
         SELECT COUNT(*)
-        FROM "task" t
+        FROM task t
         WHERE t.project_id = #{projectId}
         AND t.id IN
-        <foreach collection="tasks"
-                 item="task"
-                 open="("
-                 separator=","
-                 close=")">
+        <foreach collection="tasks" item="task" open="(" separator="," close=")">
             #{task}
         </foreach>
     </select>
