@@ -1,0 +1,34 @@
+<configuration>
+    <!--
+        Production Logback config.
+        Outputs newline-delimited JSON — each log line is a valid JSON object.
+        traceId and spanId are injected into MDC by Micrometer Tracing automatically.
+
+        This format is consumed by:
+          - Filebeat → Elasticsearch → Kibana  (ELK)
+          - Promtail → Loki → Grafana          (if you switch to Loki)
+    -->
+    <appender name="JSON_STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <!-- Trace correlation fields -->
+            <includeMdcKeyName>traceId</includeMdcKeyName>
+            <includeMdcKeyName>spanId</includeMdcKeyName>
+            <!-- Rename to match Elastic Common Schema (ECS) field names -->
+            <mdcKeyFieldName>traceId=trace.id</mdcKeyFieldName>
+            <mdcKeyFieldName>spanId=span.id</mdcKeyFieldName>
+            <shortenedLoggerNameLength>40</shortenedLoggerNameLength>
+            <!-- Include service name in every log line -->
+            <customFields>{"service.name":"project-builder"}</customFields>
+        </encoder>
+    </appender>
+
+    <!-- Silence noisy frameworks in prod -->
+    <logger name="org.mybatis"              level="WARN"/>
+    <logger name="com.zaxxer.hikari"        level="WARN"/>
+    <logger name="org.springframework.web"  level="WARN"/>
+    <logger name="io.lettuce"               level="WARN"/>
+
+    <root level="INFO">
+        <appender-ref ref="JSON_STDOUT"/>
+    </root>
+</configuration>

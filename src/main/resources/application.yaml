@@ -3,7 +3,7 @@ spring:
     name: project-builder
 
   profiles:
-    active: dev   # overridden by SPRING_PROFILES_ACTIVE env var in Railway
+    active: prod   # overridden by SPRING_PROFILES_ACTIVE env var in Railway
 
   datasource:
     url: ${DB_URL}

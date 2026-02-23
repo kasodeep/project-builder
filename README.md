@@ -73,6 +73,20 @@ Event timestamp → Instant
 
 ### Async Config
 
+### Deploy
+
+- mvn clean package -DskipTests
+- docker build -t project-builder:latest .
+- docker run -p 8080:8080 \
+  -e DB_URL=jdbc:postgresql://host:5432/db \
+  -e DB_USERNAME=user \
+  -e DB_PASSWORD=pass \
+  project-builder:latest
+- http://localhost:8080/actuator/health
+  
+- docker tag project-builder:latest kasodeep/project-builder:latest
+- docker push kasodeep/project-builder:latest
+
 ### Optimizations
 
 1. Removed Team from user to add teamId allowing reduction in join for each auth query.
