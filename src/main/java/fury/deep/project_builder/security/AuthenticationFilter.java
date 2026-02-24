@@ -44,11 +44,17 @@ public class AuthenticationFilter extends OncePerRequestFilter {
 
     /**
      * The method filters the WHITELIST_URLS and authenticate the secured ones.
-     *
      */
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain
     ) throws IOException, ServletException {
+
+        addCorsHeaders(request, response);   // ⭐ add first
+
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            response.setStatus(HttpServletResponse.SC_OK);
+            return;
+        }
 
         try {
             if (shouldNotFilter(request)) {
@@ -117,6 +123,19 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             if (path.startsWith(check)) return true;
         }
         return false;
+    }
+
+    private void addCorsHeaders(HttpServletRequest request, HttpServletResponse response) {
+        String origin = request.getHeader("Origin");
+
+        if ("http://localhost:5173".equals(origin) ||
+                "https://project-builder-ui.vercel.app".equals(origin)) {
+
+            response.setHeader("Access-Control-Allow-Origin", origin);
+            response.setHeader("Access-Control-Allow-Credentials", "true");
+            response.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,PATCH,OPTIONS");
+            response.setHeader("Access-Control-Allow-Headers", "Authorization,Content-Type");
+        }
     }
 }
 
