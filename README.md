@@ -85,6 +85,7 @@ Event timestamp → Instant
 - http://localhost:8080/actuator/health
   
 - docker tag project-builder:latest kasodeep/project-builder:latest
+- newgrp docker
 - docker push kasodeep/project-builder:latest
 
 ### Optimizations

@@ -21,6 +21,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -44,6 +45,13 @@ public class TaskService {
     private final ProjectService projectService;
     private final FeatureService featureService;
     private final OutboxService outboxService;
+
+    /**
+     * Proxy-aware self-reference. Injected via setter to avoid circular constructor dependency.
+     * Used for all internal calls to {@code @Cacheable} / {@code @CacheEvict} methods so that
+     * Spring's AOP interceptor is actually invoked.
+     */
+    private TaskService self;
 
     // ── Metrics ──────────────────────────────────────────────────────────────
     private final Counter taskCreatedCounter;
@@ -77,6 +85,11 @@ public class TaskService {
                 .register(meterRegistry);
     }
 
+    @Autowired
+    public void setSelf(TaskService self) {
+        this.self = self;
+    }
+
     /**
      * Validates access to the project and feature, then creates the task and fires the outbox event.
      */
@@ -84,7 +97,7 @@ public class TaskService {
     @Observed(name = "task.create", contextualName = "createTask")
     @Caching(evict = {
             @CacheEvict(value = CacheConfig.TASKS_BY_PROJECT, key = "#request.projectId"),
-            @CacheEvict(value = CacheConfig.TASKS_FOR_USER,   key = "#user.id")
+            @CacheEvict(value = CacheConfig.TASKS_FOR_USER, key = "#user.id")
     })
     public void createTask(CreateTaskRequest request, User user) {
         projectService.validateAccess(request.projectId(), user);
@@ -113,12 +126,11 @@ public class TaskService {
     @Transactional
     @Observed(name = "task.update", contextualName = "updateTask")
     @Caching(evict = {
-            @CacheEvict(value = CacheConfig.TASK_BY_ID,       key = "#request.id"),
-            @CacheEvict(value = CacheConfig.TASKS_BY_PROJECT, key = "#existing.projectId"),
-            @CacheEvict(value = CacheConfig.TASKS_FOR_USER,   key = "#user.id")
+            @CacheEvict(value = CacheConfig.TASK_BY_ID, key = "#request.id"),
+            @CacheEvict(value = CacheConfig.TASKS_FOR_USER, key = "#user.id")
     })
     public void updateTask(UpdateTaskRequest request, User user) {
-        Task existing = findById(request.id(), user);
+        Task existing = self.findById(request.id(), user);
         Feature feature = featureService.findById(request.featureId());
 
         Status oldStatus = existing.getStatus();
@@ -164,17 +176,20 @@ public class TaskService {
         if (hasChanges) {
             publishStatusAwareEvent(existing, oldStatus, newStatus);
         }
+        self.evictTasksByProject(existing.getProjectId());
     }
 
     @Transactional
     @Observed(name = "task.delete", contextualName = "deleteTask")
     @Caching(evict = {
-            @CacheEvict(value = CacheConfig.TASK_BY_ID,       key = "#taskId"),
-            @CacheEvict(value = CacheConfig.TASKS_FOR_USER,   key = "#user.id")
+            @CacheEvict(value = CacheConfig.TASK_BY_ID, key = "#taskId"),
+            @CacheEvict(value = CacheConfig.TASKS_FOR_USER, key = "#user.id")
     })
     public void deleteTask(String taskId, User user) {
-        Task existing = findById(taskId, user);
+        Task existing = self.findById(taskId, user);
         taskMapper.deleteTask(taskId);
+
+        self.evictTasksByProject(existing.getProjectId());
 
         taskDeletedCounter.increment();
         log.info("Task deleted taskId={} projectId={} user={}",
@@ -205,6 +220,7 @@ public class TaskService {
             throw new UnAuthorizedException("Only an assignee can mark this task as completed.");
         }
 
+        Status oldStatus = task.getStatus();
         validateTransition(task.getStatus(), Status.COMPLETED);
 
         task.setStatus(Status.COMPLETED);
@@ -220,9 +236,9 @@ public class TaskService {
                     "Task was modified concurrently. Please refresh and retry.");
         }
 
-        evictTaskById(taskId);
-        evictTasksByProject(task.getProjectId());
-        evictTasksForUser(user.getId());
+        self.evictTaskById(taskId);
+        self.evictTasksByProject(task.getProjectId());
+        self.evictTasksForUser(user.getId());
 
         taskCompletedCounter.increment();
         log.info("Task completed taskId={} projectId={} user={}",
@@ -231,7 +247,7 @@ public class TaskService {
         outboxService.save(
                 AggregateType.TASK,
                 task.getId(),
-                new TaskStatusChangedEvent(task.getId(), task.getProjectId(), Status.ACTIVE, Status.COMPLETED)
+                new TaskStatusChangedEvent(task.getId(), task.getProjectId(), oldStatus, Status.COMPLETED)
         );
 
         unlockDependents(task);
@@ -264,13 +280,16 @@ public class TaskService {
     }
 
     @CacheEvict(value = CacheConfig.TASK_BY_ID, key = "#taskId")
-    public void evictTaskById(String taskId) {}
+    public void evictTaskById(String taskId) {
+    }
 
     @CacheEvict(value = CacheConfig.TASKS_BY_PROJECT, key = "#projectId")
-    public void evictTasksByProject(String projectId) {}
+    public void evictTasksByProject(String projectId) {
+    }
 
     @CacheEvict(value = CacheConfig.TASKS_FOR_USER, key = "#userId")
-    public void evictTasksForUser(String userId) {}
+    public void evictTasksForUser(String userId) {
+    }
 
     // ── PRIVATE ───────────────────────────────────────────────────────────────
 
@@ -297,6 +316,9 @@ public class TaskService {
 
                 log.info("Dependent task unlocked taskId={} projectId={}",
                         dependent.getId(), dependent.getProjectId());
+
+                self.evictTaskById(dependent.getId());
+                self.evictTasksByProject(dependent.getProjectId());
 
                 outboxService.save(
                         AggregateType.TASK,

@@ -70,6 +70,10 @@ public class TaskUtilService {
         log.info("Dependencies replaced taskId={} count={} user={}",
                 task.getId(), request.dependencies().size(), user.getUsername());
 
+        taskService.evictTaskById(request.taskId());
+        taskService.evictTasksByProject(task.getProjectId());
+        taskService.evictTasksForUser(user.getId());
+
         outboxService.save(AggregateType.TASK, task.getId(),
                 new TaskDependenciesReplacedEvent(task.getId(), task.getProjectId()));
     }
@@ -94,6 +98,10 @@ public class TaskUtilService {
 
         log.info("Assignees replaced taskId={} count={} user={}",
                 task.getId(), request.assignees().size(), user.getUsername());
+
+        taskService.evictTaskById(request.taskId());
+        taskService.evictTasksByProject(task.getProjectId());
+        taskService.evictTasksForUser(user.getId());
 
         outboxService.save(AggregateType.TASK, task.getId(),
                 new TaskAssigneesReplacedEvent(task.getId(), task.getProjectId()));
