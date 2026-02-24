@@ -17,7 +17,7 @@ import java.util.Base64;
 
 /**
  * A filter acting as a security guard for NON_WHITELIST_URLS.
- * It checks for basic authentication and updated the context with the authenticated user.
+ * It checks for basic authentication and updates the context with the authenticated user.
  *
  * @author night_fury_44
  */
@@ -42,20 +42,11 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /**
-     * The method filters the WHITELIST_URLS and authenticate the secured ones.
-     */
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain filterChain
     ) throws IOException, ServletException {
-
-        addCorsHeaders(request, response);   // ⭐ add first
-
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-            response.setStatus(HttpServletResponse.SC_OK);
-            return;
-        }
-
         try {
             if (shouldNotFilter(request)) {
                 filterChain.doFilter(request, response);
@@ -73,6 +64,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
                 return;
             }
+
             filterChain.doFilter(request, response);
         } finally {
             AuthContextHolder.clear();
@@ -82,7 +74,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     /**
      * It decodes the header containing credentials, matches the password for the user, and sets the context.
      *
-     * @return - true when the auth is a success.
+     * @return true when the auth is a success.
      */
     private boolean authenticate(String authHeader) {
         String base64Credentials = authHeader.substring(6);
@@ -113,7 +105,8 @@ public class AuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        // Allow preflight requests
+        // Let all OPTIONS preflight requests pass through — CORS headers are
+        // added by CorsConfig (Spring MVC CorsFilter) before this filter runs
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return true;
         }
@@ -124,18 +117,4 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         }
         return false;
     }
-
-    private void addCorsHeaders(HttpServletRequest request, HttpServletResponse response) {
-        String origin = request.getHeader("Origin");
-
-        if ("http://localhost:5173".equals(origin) ||
-                "https://project-builder-ui.vercel.app".equals(origin)) {
-
-            response.setHeader("Access-Control-Allow-Origin", origin);
-            response.setHeader("Access-Control-Allow-Credentials", "true");
-            response.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,PATCH,OPTIONS");
-            response.setHeader("Access-Control-Allow-Headers", "Authorization,Content-Type");
-        }
-    }
 }
-
