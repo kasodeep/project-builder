@@ -19,6 +19,7 @@ import fury.deep.project_builder.service.outbox.OutboxService;
 import fury.deep.project_builder.service.project.ProjectService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,7 +60,7 @@ public class TaskService {
     private final Counter taskDeletedCounter;
     private final Counter taskCompletedCounter;
     private final Counter taskUpdateConflictCounter;
-    private final MeterRegistry meterRegistry;   // kept for tagged transition counters
+    private final Timer tasksFetchTimer;
 
     public TaskService(TaskMapper taskMapper,
                        ProjectService projectService,
@@ -70,7 +71,6 @@ public class TaskService {
         this.projectService = projectService;
         this.featureService = featureService;
         this.outboxService = outboxService;
-        this.meterRegistry = meterRegistry;
 
         this.taskCreatedCounter = Counter.builder("task.created.total")
                 .description("Total tasks created")
@@ -84,10 +84,13 @@ public class TaskService {
         this.taskUpdateConflictCounter = Counter.builder("task.update.conflict.total")
                 .description("Optimistic lock conflicts during task update")
                 .register(meterRegistry);
+        this.tasksFetchTimer = Timer.builder("tasks.project.fetch.duration")
+                .description("Time taken to fetch the tasks for the project")
+                .register(meterRegistry);
     }
 
-    @Autowired
     @Lazy
+    @Autowired
     public void setSelf(TaskService self) {
         this.self = self;
     }
@@ -165,15 +168,6 @@ public class TaskService {
 
         log.info("Task updated taskId={} oldStatus={} newStatus={} user={}",
                 request.id(), oldStatus, newStatus, user.getUsername());
-
-        if (oldStatus != newStatus) {
-            Counter.builder("task.status.transition.total")
-                    .tag("from", oldStatus.name())
-                    .tag("to", newStatus.name())
-                    .description("Task status transitions")
-                    .register(meterRegistry)
-                    .increment();
-        }
 
         if (hasChanges) {
             publishStatusAwareEvent(existing, oldStatus, newStatus);
@@ -274,7 +268,7 @@ public class TaskService {
     @Cacheable(value = CacheConfig.TASKS_BY_PROJECT, key = "#projectId")
     public List<Task> findTasksByProjectId(String projectId, User user) {
         projectService.validateAccess(projectId, user);
-        return taskMapper.findTasksByProjectId(projectId);
+        return tasksFetchTimer.record(() -> taskMapper.findTasksByProjectId(projectId));
     }
 
     public int countTasksInProject(List<String> tasks, String projectId) {
@@ -377,6 +371,7 @@ public class TaskService {
 
     private void publishStatusAwareEvent(Task task, Status oldStatus, Status newStatus) {
         if (oldStatus != newStatus) {
+            if (newStatus == Status.COMPLETED) unlockDependents(task);
             outboxService.save(AggregateType.TASK, task.getId(),
                     new TaskStatusChangedEvent(task.getId(), task.getProjectId(), oldStatus, newStatus));
         } else {

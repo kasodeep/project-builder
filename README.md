@@ -75,18 +75,25 @@ Event timestamp → Instant
 
 ### Deploy
 
-- mvn clean package -DskipTests
-- docker build -t project-builder:latest .
-- docker run -p 8080:8080 \
+```bash
+mvn clean package -DskipTests
+docker build -t project-builder:latest .
+docker run -p 8080:8080 \
   -e DB_URL=jdbc:postgresql://host:5432/db \
   -e DB_USERNAME=user \
   -e DB_PASSWORD=pass \
   project-builder:latest
-- http://localhost:8080/actuator/health
   
-- docker tag project-builder:latest kasodeep/project-builder:latest
-- newgrp docker
-- docker push kasodeep/project-builder:latest
+docker tag project-builder:latest kasodeep/project-builder:latest
+newgrp docker
+docker push kasodeep/project-builder:latest
+```
+
+### Monitoring
+
+Grafana: http://localhost:3000 (admin/admin)
+Prometheus: http://localhost:9090
+Loki: http://localhost:3100
 
 ### Optimizations
 

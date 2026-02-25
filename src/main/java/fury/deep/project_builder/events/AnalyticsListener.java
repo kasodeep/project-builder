@@ -46,6 +46,7 @@ public class AnalyticsListener {
         recomputeDependency(projectId);
         recomputeHealth(projectId);
         recomputeTeamByProject(projectId);
+        recomputeProgress(projectId);
     }
 
     @Async
@@ -71,6 +72,7 @@ public class AnalyticsListener {
         recomputeDependency(projectId);
         recomputeHealth(projectId);
         recomputeTeamByProject(projectId);
+        recomputeProgress(projectId);
     }
 
     @Async

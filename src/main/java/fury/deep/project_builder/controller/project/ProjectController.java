@@ -26,17 +26,6 @@ public class ProjectController {
 
     /**
      * GET /api/v1/project
-     *
-     * <p>Supported query parameters (all optional):
-     * <pre>
-     *   startAfter=2024-01-01    ISO date — return projects starting after this date
-     *   endBefore=2025-12-31     ISO date — return projects ending before this date
-     *   ownerUsername=john       Filter by owner username
-     *   minProgress=0            Minimum progress (0–100)
-     *   maxProgress=100          Maximum progress (0–100)
-     *   page=0                   Zero-indexed page number (default: 0)
-     *   size=20                  Page size (default: 20, max: 100)
-     * </pre>
      */
     @GetMapping
     public ResponseEntity<List<Project>> getAllProjects() {

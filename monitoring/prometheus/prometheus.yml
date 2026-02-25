@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: "project-builder-monitor"
+
+scrape_configs:
+  - job_name: "project-builder-prod"
+    metrics_path: "/actuator/prometheus"   # fix: no /api/v1/ prefix
+    scheme: https
+    static_configs:
+      - targets:
+          - "project-builder-31mb.onrender.com"   # fix: no https:// prefix
+        labels:
+          env: "prod"
+          app: "project-builder"
+    scrape_timeout: 30s
+    scrape_interval: 30s
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
