@@ -11,5 +11,5 @@ public class FlowAggRow {
     private int wip;
     private int t7;
     private int t30;
-    private int avgCycle;
+    private double avgCycle;
 }

@@ -27,25 +27,23 @@
     </insert>
 
     <!-- ===================== FLOW ========================== -->
-
     <!--
         Flow model
         ──────────
         wip       : tasks not yet completed
         t7 / t30  : completed within the last 7 / 30 days
-        avgCycle  : average (completed_at − started_at) in whole days;
-                    tasks missing either timestamp are excluded from the average
+        avgCycle  : average (completed_at − started_at) in days as DOUBLE;
+                    tasks missing either timestamp are excluded
+        (reopened_tasks removed — was always 0, no tracking source)
     -->
     <select id="selectFlowAgg" resultType="fury.deep.project_builder.dto.analytics.db.FlowAggRow">
     <![CDATA[
         SELECT #{projectId} AS projectId,
-            COUNT(*) FILTER (WHERE status <> 'COMPLETED') AS wip,
-            COUNT(*) FILTER (WHERE completed_at >= now() - INTERVAL '7 days') AS t7,
-            COUNT(*) FILTER (WHERE completed_at >= now() - INTERVAL '30 days') AS t30,
-            COALESCE(
+               COUNT(*)        FILTER (WHERE status <> 'COMPLETED')                         AS wip, COUNT(*) FILTER (WHERE completed_at >= now() - INTERVAL '7 days')     AS t7, COUNT(*) FILTER (WHERE completed_at >= now() - INTERVAL '30 days')    AS t30, COALESCE(
                 AVG(EXTRACT(EPOCH FROM (completed_at - started_at)) / 86400.0)
                 FILTER(WHERE started_at IS NOT NULL AND completed_at IS NOT NULL),
-                0)::int AS avgCycle
+                0.0
+                                                                                                                                                                                                                                                               ) AS avgCycle
         FROM task
         WHERE project_id = #{projectId}
         ]]>
@@ -62,45 +60,49 @@
     </update>
 
     <!-- ================= DEPENDENCY RISK =================== -->
-
     <!--
-        Dependency risk model (score 0–100)
-        ────────────────────────────────────
-        blocked ratio → 40 pts   (blocked / total deps)
-        density       → 30 pts   (total deps / total tasks, capped at 1.0)
-        critical path → 30 pts   (depth hops, capped at 10 → 3 pts each)
+        Dependency risk score (0–100)
+        ─────────────────────────────
+        40 pts  blocked ratio   : blocked / total (capped at 1.0)
+        30 pts  density         : total_deps / max_possible_edges
+                                  max_possible_edges = n*(n-1)/2 for n tasks
+                                  capped at 1.0 so dense small graphs don't dominate
+        30 pts  critical path   : depth hops, capped at 10  → 3 pts each
 
-        The recursive CTE computes the longest dependency chain (critical path).
-        It is bounded by Postgres's default cte_recursion_limit (default 1000).
-        Add CYCLE detection if circular dependency prevention is not enforced
-        at the application layer.
+        Density is normalised against max possible edges so a 3-task project
+        with 3 deps scores the same as a 100-task project with proportionally
+        the same coupling — not inflated just because it's small.
     -->
     <select id="selectDependencyAgg" resultType="fury.deep.project_builder.dto.analytics.db.DependencyAggRow">
     <![CDATA[
-        WITH dep AS (SELECT td.task_id, td.depends_on_task_id, dep_task.status
-                        FROM task_dependency td
-                        JOIN task dep_task ON dep_task.id = td.depends_on_task_id
-                        JOIN task t ON t.id = td.task_id
-                        WHERE t.project_id = #{projectId}),
+        WITH dep AS (SELECT td.task_id,
+                            td.depends_on_task_id,
+                            dep_task.status
+                     FROM task_dependency td
+                              JOIN task dep_task ON dep_task.id = td.depends_on_task_id
+                              JOIN task t ON t.id = td.task_id
+                     WHERE t.project_id = #{projectId}),
              depth AS (WITH RECURSIVE tree AS (SELECT task_id, depends_on_task_id, 1 AS d
                                                FROM dep
                                                UNION ALL
                                                SELECT t.task_id, d.depends_on_task_id, t.d + 1
                                                FROM tree t
-                                               JOIN dep d ON t.depends_on_task_id = d.task_id)
+                                                        JOIN dep d ON t.depends_on_task_id = d.task_id)
                        SELECT COALESCE(MAX(d), 0) AS critical
                        FROM tree),
              totals AS (SELECT COUNT(*) AS task_count
                         FROM task
                         WHERE project_id = #{projectId})
         SELECT #{projectId} AS projectId,
-                COUNT(*) AS total,
-                COUNT(*) FILTER (WHERE status <> 'COMPLETED') AS blocked,
-                (SELECT critical FROM depth) AS criticalPath,
-                CASE
-                   WHEN (SELECT task_count FROM totals) = 0 THEN 0.0
-                   ELSE COUNT(*)::double precision / (SELECT task_count FROM totals)
-                END AS density
+               COUNT(*)     AS total,
+               COUNT(*)        FILTER (WHERE status <> 'COMPLETED')                 AS blocked, (SELECT critical FROM depth) AS criticalPath,
+               CASE
+                   WHEN (SELECT task_count FROM totals) <= 1 THEN 0.0
+                   ELSE COUNT(*)::double precision
+                        / ((SELECT task_count FROM totals)
+                           * ((SELECT task_count FROM totals) - 1) / 2.0)
+        END
+        AS density
         FROM dep
         ]]>
     </select>
@@ -120,13 +122,15 @@
     <!--
         Team capacity model
         ───────────────────
-        activeProjects : total projects belonging to the team
-        activeTasks    : total non-completed tasks across all team projects
-        avgTasks       : average active tasks per user (over users who have ≥1)
-        overloaded     : users whose active task count exceeds #{overloadThreshold}
-        avgCompletion  : avg(completed_at − started_at) in whole days for
-                         tasks completed by team members;
-                         tasks missing either timestamp are excluded
+        activeProjects  : total projects in the team
+        activeTasks     : non-completed tasks across all team projects
+        avgTasks        : average active tasks per DISTINCT active user
+                          (users with ≥1 active task — not divided by task count)
+        overloaded      : users whose active task count > overloadThreshold
+        avgCompletion   : avg(completed_at − started_at) in days as DOUBLE
+                          (precision retained — no INT cast)
+
+        Burnout is computed in the application layer from these values.
     -->
     <select id="selectTeamAgg"
             resultType="fury.deep.project_builder.dto.analytics.db.TeamAggRow">
@@ -142,20 +146,26 @@
                             FROM task_assignee ta
                                      JOIN task t ON t.id = ta.task_id
                             WHERE t.project_id IN (SELECT project_id FROM team_projects)),
-             active_per_user AS (SELECT user_id, COUNT(*) AS cnt
+             active_per_user AS (SELECT user_id,
+                                        COUNT(*) AS cnt
                                  FROM team_tasks
                                  WHERE status <> 'COMPLETED'
                                  GROUP BY user_id)
         SELECT #{teamId}                                                     AS teamId,
                (SELECT COUNT(*) FROM team_projects)                          AS activeProjects,
                (SELECT COUNT(*) FROM team_tasks WHERE status <> 'COMPLETED') AS activeTasks,
-               COALESCE((SELECT AVG(cnt) FROM active_per_user), 0)::int            AS avgTasks, (SELECT COUNT(*) FILTER (WHERE cnt > #{overloadThreshold})
-                                                                                                 FROM active_per_user) AS overloaded,
+               -- avg active tasks per active user (not divided by raw task count)
+               COALESCE((SELECT AVG(cnt) FROM active_per_user), 0.0)         AS avgTasks,
+               -- distinct active users (denominator for burnout ratio)
+               (SELECT COUNT(*) FROM active_per_user)                        AS activeUsers,
+               (SELECT COUNT(*) FILTER (WHERE cnt > #{overloadThreshold})
+                FROM active_per_user)                                        AS overloaded,
+               -- precision retained as double, no ::int cast
                COALESCE(
                        AVG(EXTRACT(EPOCH FROM (completed_at - started_at)) / 86400.0)
                        FILTER(WHERE started_at IS NOT NULL AND completed_at IS NOT NULL),
-                       0
-               ) ::int                                                              AS avgCompletion
+                       0.0
+               )                                                             AS avgCompletion
         FROM team_tasks
         ]]>
     </select>
@@ -174,27 +184,32 @@
 
     <!-- ================= PROJECT HEALTH ==================== -->
     <!--
-        Health model
-        ────────────
-        overdue     : tasks past end_date and not completed
-        longRunning : tasks started > 14 days ago with no completion
-        blocked     : dependencies whose upstream task is not completed
+        Health grade thresholds
+        ────────────────────────
+        The raw penalty is computed first then mapped to a letter grade.
+        penalty = 5 × overdue + 3 × blocked + 2 × longRunning
 
-        FIX: the orphaned `variance` parameter (overdue * 2) has been removed
-             from updateProjectHealth.  It was never used in the SQL UPDATE.
+          A  : penalty = 0            (perfect)
+          B  : penalty  1 –  9        (minor issues)
+          C  : penalty 10 – 19        (needs attention)
+          D  : penalty 20 – 34        (at risk)
+          F  : penalty ≥ 35           (critical)
+
+        risk_level stays consistent: A/B → GREEN, C → AMBER, D/F → RED
     -->
     <select id="selectHealthAgg"
             resultType="fury.deep.project_builder.dto.analytics.db.HealthAggRow">
     <![CDATA[
         SELECT #{projectId} AS projectId,
-            COUNT(*) FILTER (WHERE end_date < CURRENT_DATE AND status  <> 'COMPLETED') AS overdue,
-            COUNT(*) FILTER (WHERE started_at IS NOT NULL AND completed_at IS NULL AND started_at < now() - INTERVAL '14 days') AS longRunning,
-            (SELECT COUNT(*)
-                FROM task_dependency td
-                JOIN task dep_task ON dep_task.id = td.depends_on_task_id
-                JOIN task t ON t.id = td.task_id
-                WHERE t.project_id = #{projectId}
-                AND dep_task.status <> 'COMPLETED') AS blocked
+               COUNT(*)        FILTER (WHERE end_date < CURRENT_DATE
+                                  AND  status  <> 'COMPLETED')              AS overdue, COUNT(*) FILTER (WHERE started_at IS NOT NULL
+                                  AND  completed_at IS NULL
+                                  AND  started_at < now() - INTERVAL '14 days') AS longRunning, (SELECT COUNT(*)
+                                                                                                 FROM task_dependency td
+                                                                                                          JOIN task dep_task ON dep_task.id = td.depends_on_task_id
+                                                                                                          JOIN task t ON t.id = td.task_id
+                                                                                                 WHERE t.project_id = #{projectId}
+                                                                                                   AND dep_task.status <> 'COMPLETED') AS blocked
         FROM task
         WHERE project_id = #{projectId}
         ]]>
@@ -202,11 +217,12 @@
 
     <update id="updateProjectHealth">
         UPDATE project_health
-        SET overdue_tasks = #{overdue},
-            blocked_tasks = #{blocked},
-            health_score  = #{score},
-            risk_level    = #{riskLevel},
-            updated_at    = now()
+        SET overdue_tasks      = #{overdue},
+            blocked_tasks      = #{blocked},
+            long_running_tasks = #{longRunning},
+            health_grade       = #{grade},
+            risk_level         = #{riskLevel},
+            updated_at         = now()
         WHERE project_id = #{projectId}
     </update>
 

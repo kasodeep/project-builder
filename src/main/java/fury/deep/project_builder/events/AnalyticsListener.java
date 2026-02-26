@@ -16,10 +16,7 @@ import org.springframework.stereotype.Service;
  * Listens to domain events and keeps analytics aggregates consistent.
  *
  * <p>All handlers run on a dedicated async thread pool so they never block
- * the transactional thread that published the event.  Each handler calls
- * {@link #ensureProject(String)} first so that target rows always exist
- * before any UPDATE is attempted — including for the first event ever fired
- * for a given project.
+ * the transactional thread that published the event.
  */
 @Slf4j
 @Service
@@ -28,87 +25,78 @@ public class AnalyticsListener {
 
     /**
      * A user carrying more than this many active tasks is considered overloaded.
-     * Passed directly to the SQL query so the value is never duplicated.
      */
     static final int OVERLOAD_THRESHOLD = 5;
 
     private final AnalyticsMapper mapper;
     private final ProjectMapper projectMapper;
 
+    // ─── Event handlers ──────────────────────────────────────────────────────
+
     @Async
     @EventListener
     public void onTaskCreated(TaskCreatedEvent e) {
-        String projectId = e.projectId();
-        log.debug("analytics: task created in project={}", projectId);
-        ensureProject(projectId);
-
-        recomputeFlow(projectId);
-        recomputeDependency(projectId);
-        recomputeHealth(projectId);
-        recomputeTeamByProject(projectId);
-        recomputeProgress(projectId);
+        log.debug("analytics: task created in project={}", e.projectId());
+        ensureProject(e.projectId());
+        recomputeFlow(e.projectId());
+        recomputeDependency(e.projectId());
+        recomputeHealth(e.projectId());
+        recomputeTeamByProject(e.projectId());
+        recomputeProgress(e.projectId());
     }
 
     @Async
     @EventListener
     public void onTaskUpdated(TaskUpdatedEvent e) {
-        String projectId = e.projectId();
-        log.debug("analytics: task updated in project={}", projectId);
-        ensureProject(projectId);
-
-        recomputeFlow(projectId);
-        recomputeHealth(projectId);
-        recomputeTeamByProject(projectId);
+        log.debug("analytics: task updated in project={}", e.projectId());
+        ensureProject(e.projectId());
+        recomputeFlow(e.projectId());
+        recomputeHealth(e.projectId());
+        recomputeTeamByProject(e.projectId());
     }
 
     @Async
     @EventListener
     public void onTaskDeleted(TaskDeletedEvent e) {
-        String projectId = e.projectId();
-        log.debug("analytics: task deleted in project={}", projectId);
-        ensureProject(projectId);
-
-        recomputeFlow(projectId);
-        recomputeDependency(projectId);
-        recomputeHealth(projectId);
-        recomputeTeamByProject(projectId);
-        recomputeProgress(projectId);
+        log.debug("analytics: task deleted in project={}", e.projectId());
+        ensureProject(e.projectId());
+        recomputeFlow(e.projectId());
+        recomputeDependency(e.projectId());
+        recomputeHealth(e.projectId());
+        recomputeTeamByProject(e.projectId());
+        recomputeProgress(e.projectId());
     }
 
     @Async
     @EventListener
     public void onStatusChanged(TaskStatusChangedEvent e) {
-        String projectId = e.projectId();
-        log.debug("analytics: status changed in project={}", projectId);
-        ensureProject(projectId);
-
-        recomputeFlow(projectId);
-        recomputeDependency(projectId);
-        recomputeHealth(projectId);
-        recomputeProgress(projectId);
-        recomputeTeamByProject(projectId);
+        log.debug("analytics: status changed in project={}", e.projectId());
+        ensureProject(e.projectId());
+        recomputeFlow(e.projectId());
+        recomputeDependency(e.projectId());
+        recomputeHealth(e.projectId());
+        recomputeProgress(e.projectId());
+        recomputeTeamByProject(e.projectId());
     }
 
     @Async
     @EventListener
     public void onDependenciesChanged(TaskDependenciesReplacedEvent e) {
-        String projectId = e.projectId();
-        log.debug("analytics: dependencies replaced in project={}", projectId);
-        ensureProject(projectId);
-
-        recomputeDependency(projectId);
-        recomputeHealth(projectId);
+        log.debug("analytics: dependencies replaced in project={}", e.projectId());
+        ensureProject(e.projectId());
+        recomputeDependency(e.projectId());
+        recomputeHealth(e.projectId());
     }
 
     @Async
     @EventListener
     public void onAssigneesChanged(TaskAssigneesReplacedEvent e) {
-        String projectId = e.projectId();
-        log.debug("analytics: assignees replaced in project={}", projectId);
-        ensureProject(projectId);
-
-        recomputeTeamByProject(projectId);
+        log.debug("analytics: assignees replaced in project={}", e.projectId());
+        ensureProject(e.projectId());
+        recomputeTeamByProject(e.projectId());
     }
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private void ensureProject(String projectId) {
         mapper.ensureProjectHealth(projectId);
@@ -128,14 +116,16 @@ public class AnalyticsListener {
         }
     }
 
+    // ─── Flow ────────────────────────────────────────────────────────────────
+
     /**
      * Flow model:
      * <ul>
      *   <li>WIP            — active tasks (status ≠ COMPLETED)</li>
      *   <li>Throughput 7d  — completed in the last 7 days</li>
      *   <li>Throughput 30d — completed in the last 30 days</li>
-     *   <li>Avg cycle time — avg(completed_at − started_at) in days;
-     *                        tasks missing either timestamp are excluded</li>
+     *   <li>Avg cycle time — avg(completed_at − started_at) in days as double;
+     *                        tasks missing either timestamp excluded</li>
      * </ul>
      */
     private void recomputeFlow(String projectId) {
@@ -143,13 +133,19 @@ public class AnalyticsListener {
         mapper.updateFlow(projectId, row.getWip(), row.getT7(), row.getT30(), row.getAvgCycle());
     }
 
+    // ─── Dependency risk ─────────────────────────────────────────────────────
+
     /**
-     * Dependency risk model (score 0–100):
+     * Dependency risk score (0–100):
      * <ul>
-     *   <li>40 pts — blocked-dependency ratio (blocked / total deps)</li>
-     *   <li>30 pts — dependency density (total deps / total tasks)</li>
-     *   <li>30 pts — critical-path depth (capped at 10 hops → 3 pts each)</li>
+     *   <li>40 pts — blocked ratio (blocked deps / total deps, capped at 1.0)</li>
+     *   <li>30 pts — normalised density (total deps / max possible edges n*(n-1)/2)</li>
+     *   <li>30 pts — critical path depth (capped at 10 hops → 3 pts each)</li>
      * </ul>
+     *
+     * <p>Density is now normalised against max possible edges so small and
+     * large projects are treated proportionally instead of small projects
+     * being penalised more heavily.
      */
     private void recomputeDependency(String projectId) {
         DependencyAggRow row = mapper.selectDependencyAgg(projectId);
@@ -159,9 +155,9 @@ public class AnalyticsListener {
                 : (double) row.getBlocked() / row.getTotal();
 
         int risk = (int) Math.round(
-                (blockedRatio * 40)
-                        + (row.getDensity() * 30)
-                        + (Math.min(row.getCriticalPath(), 10) * 3)
+                Math.min(blockedRatio, 1.0) * 40
+                        + Math.min(row.getDensity(), 1.0) * 30
+                        + Math.min(row.getCriticalPath(), 10) * 3.0
         );
 
         mapper.updateDependencyRisk(
@@ -174,33 +170,84 @@ public class AnalyticsListener {
         );
     }
 
+    // ─── Health ──────────────────────────────────────────────────────────────
+
     /**
-     * Burnout model (score 0–100):
+     * Health grade thresholds (penalty = 5×overdue + 3×blocked + 2×longRunning):
      * <pre>
-     *   score = (overloadedUsers / totalUsers) × 60
-     *         + (avgTasksPerUser / OVERLOAD_THRESHOLD) × 40
+     *   A  penalty = 0        perfect
+     *   B  penalty  1 –  9    minor issues
+     *   C  penalty 10 – 19    needs attention
+     *   D  penalty 20 – 34    at risk
+     *   F  penalty ≥ 35       critical
      * </pre>
-     * Both components are clamped to their maximum contribution before summing
-     * so a single extreme value cannot push the total above 100.
+     * <p>
+     * risk_level stays consistent: A/B → GREEN · C → AMBER · D/F → RED
      *
-     * <p>This matches the documented 60/40 weight split and is properly
-     * normalized. The previous implementation used raw multipliers (×15 and
-     * ×5) that produced unbounded values with no relationship to the weights
-     * described in the Javadoc.
+     * <p>longRunning is now stored in the DB (was computed but silently dropped).
+     */
+    private void recomputeHealth(String projectId) {
+        HealthAggRow row = mapper.selectHealthAgg(projectId);
+
+        int penalty = (row.getOverdue() * 5)
+                + (row.getBlocked() * 3)
+                + (row.getLongRunning() * 2);
+
+        String grade;
+        if (penalty == 0) grade = "A";
+        else if (penalty < 10) grade = "B";
+        else if (penalty < 20) grade = "C";
+        else if (penalty < 35) grade = "D";
+        else grade = "F";
+
+        String riskLevel = switch (grade) {
+            case "A", "B" -> "GREEN";
+            case "C" -> "AMBER";
+            default -> "RED";       // D or F
+        };
+
+        mapper.updateProjectHealth(
+                projectId,
+                row.getOverdue(),
+                row.getBlocked(),
+                row.getLongRunning(),
+                grade,
+                riskLevel
+        );
+    }
+
+    // ─── Team capacity ───────────────────────────────────────────────────────
+
+    /**
+     * Burnout score (0–100):
+     * <pre>
+     *   overloadedRatio = overloadedUsers / activeUsers   (fraction of PEOPLE overloaded)
+     *   avgTasksRatio   = avgTasksPerUser / OVERLOAD_THRESHOLD
+     *
+     *   score = min(overloadedRatio, 1.0) × 60
+     *         + min(avgTasksRatio,   1.0) × 40
+     * </pre>
+     *
+     * <p>Previously divided by {@code activeTasks} instead of {@code activeUsers},
+     * producing a nonsensical ratio (e.g. 2 overloaded users / 20 tasks = 10%
+     * instead of 2 / 3 users = 67%).  Fixed to use {@code activeUsers}.
+     *
+     * <p>avgTasks and avgCompletion are now passed as {@code double} so the
+     * NUMERIC precision from Postgres is retained end-to-end.
      */
     private void recomputeTeam(String teamId) {
         TeamAggRow row = mapper.selectTeamAgg(teamId, OVERLOAD_THRESHOLD);
 
-        // Guard against division-by-zero when a team has no active tasks yet.
-        double overloadedRatio = row.getActiveTasks() == 0
+        // Use activeUsers (people) as denominator, not activeTasks
+        double overloadedRatio = row.getActiveUsers() == 0
                 ? 0.0
-                : (double) row.getOverloaded() / Math.max(row.getActiveTasks(), 1);
+                : (double) row.getOverloaded() / row.getActiveUsers();
 
         double avgTasksRatio = OVERLOAD_THRESHOLD == 0
                 ? 0.0
-                : (double) row.getAvgTasks() / OVERLOAD_THRESHOLD;
+                : row.getAvgTasks() / OVERLOAD_THRESHOLD;
 
-        int burnoutScore = (int) Math.round(
+        int burnout = (int) Math.round(
                 Math.min(overloadedRatio, 1.0) * 60
                         + Math.min(avgTasksRatio, 1.0) * 40
         );
@@ -209,43 +256,10 @@ public class AnalyticsListener {
                 teamId,
                 row.getActiveProjects(),
                 row.getActiveTasks(),
-                row.getAvgTasks(),
+                row.getAvgTasks(),       // double
                 row.getOverloaded(),
-                row.getAvgCompletion(),
-                Math.min(100, burnoutScore)
-        );
-    }
-
-    /**
-     * Health model:
-     * <pre>
-     *   score = 100
-     *         − 5 × overdue_tasks
-     *         − 3 × blocked_dependencies
-     *         − 2 × long_running_tasks        (started > 14 days ago, not done)
-     * </pre>
-     * Risk levels: GREEN ≥ 80 · AMBER ≥ 55 · RED &lt; 55
-     */
-    private void recomputeHealth(String projectId) {
-        HealthAggRow row = mapper.selectHealthAgg(projectId);
-
-        int score = 100
-                - (row.getOverdue() * 5)
-                - (row.getBlocked() * 3)
-                - (row.getLongRunning() * 2);
-
-        score = Math.max(0, score);
-
-        String riskLevel = score >= 80 ? "GREEN"
-                : score >= 55 ? "AMBER"
-                : "RED";
-
-        mapper.updateProjectHealth(
-                projectId,
-                row.getOverdue(),
-                row.getBlocked(),
-                score,
-                riskLevel
+                row.getAvgCompletion(),  // double
+                Math.min(100, burnout)
         );
     }
 

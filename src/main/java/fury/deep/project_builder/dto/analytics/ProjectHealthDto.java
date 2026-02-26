@@ -10,8 +10,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ProjectHealthDto {
-    private int healthScore;
+    private String healthGrade;
     private int overdueTasks;
     private int blockedTasks;
     private String riskLevel;
+    private int longRunningTasks;
 }

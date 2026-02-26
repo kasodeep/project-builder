@@ -9,6 +9,6 @@ import lombok.Data;
 public class HealthAggRow {
     private String projectId;
     private int overdue;
-    private int blocked;
     private int longRunning;
+    private int blocked;
 }

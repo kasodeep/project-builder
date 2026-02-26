@@ -15,5 +15,4 @@ public class ProjectFlowDto {
     private int throughput7d;
     private int throughput30d;
     private int avgCycleTime;
-    private int reopenedTasks;
 }

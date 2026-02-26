@@ -26,7 +26,8 @@ public interface AnalyticsMapper {
 
     HealthAggRow selectHealthAgg(@Param("projectId") String projectId);
 
-    TeamAggRow selectTeamAgg(@Param("teamId") String teamId, @Param("overloadThreshold") int overloadThreshold);
+    TeamAggRow selectTeamAgg(@Param("teamId") String teamId,
+                             @Param("overloadThreshold") int overloadThreshold);
 
     /* ---------- UPDATES ---------- */
     void updateFlow(
@@ -34,7 +35,7 @@ public interface AnalyticsMapper {
             @Param("wip") int wip,
             @Param("throughput7d") int throughput7d,
             @Param("throughput30d") int throughput30d,
-            @Param("avgCycle") int avgCycleDays);
+            @Param("avgCycle") double avgCycleDays);   // double — no precision loss
 
     void updateDependencyRisk(
             @Param("projectId") String projectId,
@@ -48,16 +49,17 @@ public interface AnalyticsMapper {
             @Param("projectId") String projectId,
             @Param("overdue") int overdue,
             @Param("blocked") int blocked,
-            @Param("score") int score,
+            @Param("longRunning") int longRunning,    // now stored, was silently dropped
+            @Param("grade") String grade,          // A/B/C/D/F replaces numeric score
             @Param("riskLevel") String riskLevel);
 
     void updateTeamCapacity(
             @Param("teamId") String teamId,
             @Param("activeProjects") int activeProjects,
             @Param("activeTasks") int activeTasks,
-            @Param("avgTasks") int avgTasks,
+            @Param("avgTasks") double avgTasks,       // double — no precision loss
             @Param("overloaded") int overloaded,
-            @Param("avgCompletion") int avgCompletion,
+            @Param("avgCompletion") double avgCompletion,  // double — no precision loss
             @Param("burnout") int burnout);
 
     /* ---------- LOOKUPS ---------- */

@@ -2,7 +2,6 @@ package fury.deep.project_builder.service.analytics;
 
 import fury.deep.project_builder.dto.analytics.*;
 import fury.deep.project_builder.repository.analytics.AnalyticsReadMapper;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 /**
@@ -18,7 +17,6 @@ public class AnalyticsService {
         this.mapper = mapper;
     }
 
-    @Cacheable("project-dashboard")
     public DashboardAnalyticsDto getDashboard(String projectId) {
         return mapper.findDashboard(projectId);
     }

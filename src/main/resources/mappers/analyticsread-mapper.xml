@@ -8,17 +8,17 @@
 
         SELECT
             -- Project Health
-            ph.health_score             AS healthScore,
+            ph.health_grade             AS healthGrade,
             ph.overdue_tasks            AS overdueTasks,
             ph.blocked_tasks            AS blockedTasks,
+            ph.long_running_tasks       AS longRunningTasks,
             ph.risk_level               AS riskLevel,
 
-            -- Flow
+            -- Flow (reopened_tasks removed)
             pf.wip_count                AS wipCount,
             pf.throughput_7d            AS throughput7d,
             pf.throughput_30d           AS throughput30d,
             pf.avg_cycle_time_days      AS avgCycleTime,
-            pf.reopened_tasks           AS reopenedTasks,
 
             -- Dependency
             dr.total_dependencies       AS totalDependencies,
@@ -27,7 +27,7 @@
             dr.dependency_density       AS dependencyDensity,
             dr.risk_score               AS dependencyRiskScore,
 
-            -- Team
+            -- Team (team-wide, joined via project's team_id)
             tc.active_projects          AS activeProjects,
             tc.active_tasks             AS activeTasks,
             tc.avg_tasks_per_user       AS avgTasksPerUser,

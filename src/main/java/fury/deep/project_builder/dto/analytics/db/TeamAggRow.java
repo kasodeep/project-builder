@@ -8,9 +8,10 @@ import lombok.Data;
 @Data
 public class TeamAggRow {
     private String teamId;
-    private int activeProjects;
-    private int activeTasks;
-    private int avgTasks;
-    private int overloaded;
-    private int avgCompletion;
+    private int    activeProjects;
+    private int    activeTasks;
+    private double avgTasks;
+    private int    activeUsers;
+    private int    overloaded;
+    private double avgCompletion;
 }

@@ -9,9 +9,10 @@
 
         <association property="health"
                      javaType="fury.deep.project_builder.dto.analytics.ProjectHealthDto">
-            <result property="healthScore" column="healthScore"/>
+            <result property="healthGrade" column="healthGrade"/>
             <result property="overdueTasks" column="overdueTasks"/>
             <result property="blockedTasks" column="blockedTasks"/>
+            <result property="longRunningTasks" column="longRunningTasks"/>
             <result property="riskLevel" column="riskLevel"/>
         </association>
 
@@ -21,7 +22,6 @@
             <result property="throughput7d" column="throughput7d"/>
             <result property="throughput30d" column="throughput30d"/>
             <result property="avgCycleTime" column="avgCycleTime"/>
-            <result property="reopenedTasks" column="reopenedTasks"/>
         </association>
 
         <association property="dependency"
@@ -44,4 +44,3 @@
         </association>
     </resultMap>
 </mapper>
-
